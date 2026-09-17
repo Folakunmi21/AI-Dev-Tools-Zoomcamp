@@ -1,0 +1,421 @@
+openapi: 3.0.3
+info:
+  title: Evenly API
+  version: 0.1.0
+  description: |
+    HTTP contract expected by the frontend service adapter. Money values are
+    integer minor units (kobo for NGN). The frontend sends and receives JSON
+    except for receipt uploads, which use multipart/form-data.
+servers:
+  - url: /api
+    description: Configure the frontend base URL with VITE_API_BASE_URL.
+tags:
+  - name: Auth
+  - name: Dashboard
+  - name: Groups
+  - name: Invites
+  - name: Expenses
+  - name: Settlements
+  - name: Notifications
+  - name: Uploads
+paths:
+  /auth/session:
+    get:
+      tags: [Auth]
+      summary: Get the current session
+      security: []
+      description: Public; returns a null user for a guest.
+      responses:
+        '200': { description: Session, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register and sign in
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RegisterInput' } } } }
+      responses:
+        '200': { description: Created session, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Sign in
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/LoginInput' } } } }
+      responses:
+        '200': { description: Signed-in session, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Sign out
+      security: []
+      description: Clears the session. Safe to call when already signed out.
+      responses:
+        '204': { description: Session cleared }
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard data
+      security: []
+      description: Public; guests receive an empty saved-group view and can still see their quick splits.
+      responses:
+        '200': { description: Dashboard, content: { application/json: { schema: { $ref: '#/components/schemas/DashboardData' } } } }
+  /groups:
+    get:
+      tags: [Groups]
+      summary: List accessible saved groups
+      security: []
+      description: Authentication is required for saved groups; a guest receives an empty list.
+      responses:
+        '200': { description: Group summaries, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/GroupSummary' } } } } }
+    post:
+      tags: [Groups]
+      summary: Create a group
+      security: [{ sessionCookie: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateGroupInput' } } } }
+      responses:
+        '201': { description: Created group, content: { application/json: { schema: { $ref: '#/components/schemas/Group' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /groups/{groupId}:
+    parameters: [{ $ref: '#/components/parameters/GroupId' }]
+    get:
+      tags: [Groups]
+      summary: Get group details
+      security: []
+      description: Requires membership for saved groups, or guest ownership/access to the quick split. Authentication is required for saved groups.
+      responses:
+        '200': { description: Group detail, content: { application/json: { schema: { $ref: '#/components/schemas/GroupDetail' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Groups]
+      summary: Update group details
+      security: [{ sessionCookie: [] }]
+      description: Requires group-admin access (quick-split owner is also an admin).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateGroupInput' } } } }
+      responses:
+        '200': { description: Updated group, content: { application/json: { schema: { $ref: '#/components/schemas/Group' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /quick-splits:
+    post:
+      tags: [Groups]
+      summary: Create a quick split
+      security: []
+      description: Public; the first member represents the viewer.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateQuickSplitInput' } } } }
+      responses:
+        '201': { description: Created quick split, content: { application/json: { schema: { $ref: '#/components/schemas/Group' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /groups/{groupId}/save:
+    parameters: [{ $ref: '#/components/parameters/GroupId' }]
+    post:
+      tags: [Groups]
+      summary: Save a quick split as a group
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200': { description: Saved group, content: { application/json: { schema: { $ref: '#/components/schemas/Group' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /groups/{groupId}/members:
+    parameters: [{ $ref: '#/components/parameters/GroupId' }]
+    post:
+      tags: [Groups]
+      summary: Add a member by display name
+      security: [{ sessionCookie: [] }]
+      description: Requires group-admin access.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AddMemberInput' } } } }
+      responses:
+        '201': { description: Added member, content: { application/json: { schema: { $ref: '#/components/schemas/GroupMember' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /groups/{groupId}/members/{memberId}:
+    parameters:
+      - { $ref: '#/components/parameters/GroupId' }
+      - { $ref: '#/components/parameters/MemberId' }
+    delete:
+      tags: [Groups]
+      summary: Remove a member
+      security: [{ sessionCookie: [] }]
+      description: Requires group-admin access.
+      responses:
+        '204': { description: Member removed }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /groups/{groupId}/invite:
+    parameters: [{ $ref: '#/components/parameters/GroupId' }]
+    post:
+      tags: [Invites]
+      summary: Create or rotate an invite link
+      security: [{ sessionCookie: [] }]
+      description: Requires group-admin access.
+      responses:
+        '200': { description: Invite token, content: { application/json: { schema: { $ref: '#/components/schemas/InviteToken' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Invites]
+      summary: Revoke an invite link
+      security: [{ sessionCookie: [] }]
+      description: Requires group-admin access.
+      responses:
+        '204': { description: Invite revoked }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /invites/{token}:
+    parameters: [{ $ref: '#/components/parameters/InviteToken' }]
+    get:
+      tags: [Invites]
+      summary: Preview an invite
+      security: []
+      description: Public; invalid tokens return a 200 response with valid=false.
+      responses:
+        '200': { description: Invite preview, content: { application/json: { schema: { $ref: '#/components/schemas/InvitePreview' } } } }
+  /invites/{token}/accept:
+    parameters: [{ $ref: '#/components/parameters/InviteToken' }]
+    post:
+      tags: [Invites]
+      summary: Accept an invite
+      security: [{ sessionCookie: [] }]
+      requestBody: { required: false, content: { application/json: { schema: { $ref: '#/components/schemas/AcceptInviteInput' } } } }
+      responses:
+        '200': { description: Joined member, content: { application/json: { schema: { $ref: '#/components/schemas/GroupMember' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /groups/{groupId}/invitations:
+    parameters: [{ $ref: '#/components/parameters/GroupId' }]
+    post:
+      tags: [Invites]
+      summary: Invite an existing user by email
+      security: [{ sessionCookie: [] }]
+      description: Requires group-admin access; sends an in-app notification.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/InviteUserInput' } } } }
+      responses:
+        '204': { description: Invitation created }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /expenses:
+    post:
+      tags: [Expenses]
+      summary: Create an expense
+      security: [{ sessionCookie: [] }]
+      description: Requires membership in the referenced group.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ExpenseInput' } } } }
+      responses:
+        '201': { description: Created expense, content: { application/json: { schema: { $ref: '#/components/schemas/Expense' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /expenses/{expenseId}:
+    parameters: [{ $ref: '#/components/parameters/ExpenseId' }]
+    get:
+      tags: [Expenses]
+      summary: Get an expense
+      security: [{ sessionCookie: [] }]
+      description: Requires membership in the expense's group.
+      responses:
+        '200': { description: Expense, content: { application/json: { schema: { $ref: '#/components/schemas/Expense' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Expenses]
+      summary: Update an expense
+      security: [{ sessionCookie: [] }]
+      description: Requires membership; only the member who created it may edit it.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ExpenseUpdateInput' } } } }
+      responses:
+        '200': { description: Updated expense, content: { application/json: { schema: { $ref: '#/components/schemas/Expense' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Expenses]
+      summary: Soft-delete an expense
+      security: [{ sessionCookie: [] }]
+      description: Requires membership; only the member who created it may delete it.
+      responses:
+        '204': { description: Expense deleted }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /settlements:
+    post:
+      tags: [Settlements]
+      summary: Mark a debt as paid
+      security: [{ sessionCookie: [] }]
+      description: Requires group membership; the payer, payee, or a group admin may mark it paid.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/MarkPaidInput' } } } }
+      responses:
+        '201': { description: Settlement, content: { application/json: { schema: { $ref: '#/components/schemas/Settlement' } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200': { description: Notifications, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/AppNotification' } } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Get unread notification count
+      security: []
+      description: Public; guests receive count 0.
+      responses:
+        '200': { description: Count, content: { application/json: { schema: { $ref: '#/components/schemas/UnreadCount' } } } }
+  /notifications/{notificationId}/read:
+    parameters: [{ $ref: '#/components/parameters/NotificationId' }]
+    post:
+      tags: [Notifications]
+      summary: Mark one notification read
+      security: [{ sessionCookie: [] }]
+      responses:
+        '204': { description: Notification marked read }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark all notifications read
+      security: [{ sessionCookie: [] }]
+      responses:
+        '204': { description: Notifications marked read }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /uploads/receipts:
+    post:
+      tags: [Uploads]
+      summary: Upload a receipt image
+      security: []
+      description: Public in the frontend contract. Accepts an image up to 5 MiB.
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } } } } }
+      responses:
+        '200': { description: Uploaded file, content: { application/json: { schema: { $ref: '#/components/schemas/UploadedFile' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Session cookie sent automatically by the browser (credentials=include).
+  parameters:
+    GroupId: { name: groupId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+    MemberId: { name: memberId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+    ExpenseId: { name: expenseId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+    NotificationId: { name: notificationId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
+    InviteToken: { name: token, in: path, required: true, schema: { type: string } }
+  responses:
+    Unauthenticated: { description: Authentication required, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+    Forbidden: { description: Insufficient permissions, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+    NotFound: { description: Resource not found, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+    Conflict: { description: Conflict, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+    ValidationError: { description: Validation failed, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+  schemas:
+    Id: { type: string }
+    IsoDate: { type: string, format: date-time }
+    CurrencyCode: { type: string, enum: [NGN] }
+    Kobo: { type: integer, description: Integer amount in kobo (NGN minor units). }
+    SplitMethod: { type: string, enum: [equal, custom, percentage, shares] }
+    MemberRole: { type: string, enum: [admin, member] }
+    User:
+      type: object
+      required: [id, name, email, createdAt, updatedAt]
+      properties: { id: { $ref: '#/components/schemas/Id' }, name: { type: string }, email: { type: string, format: email }, createdAt: { $ref: '#/components/schemas/IsoDate' }, updatedAt: { $ref: '#/components/schemas/IsoDate' } }
+    Session:
+      type: object
+      required: [user]
+      properties: { user: { oneOf: [{ $ref: '#/components/schemas/User' }, { type: 'null' }] } }
+    RegisterInput:
+      type: object
+      required: [name, email, password]
+      properties: { name: { type: string }, email: { type: string, format: email }, password: { type: string, format: password, minLength: 8 } }
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties: { email: { type: string, format: email }, password: { type: string, format: password } }
+    Group:
+      type: object
+      required: [id, kind, name, description, ownerId, currency, inviteToken, createdAt, updatedAt]
+      properties: { id: { $ref: '#/components/schemas/Id' }, kind: { type: string, enum: [group, quick] }, name: { type: string }, description: { type: string }, ownerId: { oneOf: [{ $ref: '#/components/schemas/Id' }, { type: 'null' }] }, currency: { $ref: '#/components/schemas/CurrencyCode' }, inviteToken: { oneOf: [{ type: string }, { type: 'null' }] }, createdAt: { $ref: '#/components/schemas/IsoDate' }, updatedAt: { $ref: '#/components/schemas/IsoDate' } }
+    GroupMember:
+      type: object
+      required: [id, groupId, userId, displayName, role, joinedAt]
+      properties: { id: { $ref: '#/components/schemas/Id' }, groupId: { $ref: '#/components/schemas/Id' }, userId: { oneOf: [{ $ref: '#/components/schemas/Id' }, { type: 'null' }] }, displayName: { type: string }, role: { $ref: '#/components/schemas/MemberRole' }, joinedAt: { $ref: '#/components/schemas/IsoDate' } }
+    MemberDebtSummary:
+      type: object
+      required: [owes, owed, net]
+      properties: { owes: { $ref: '#/components/schemas/Kobo' }, owed: { $ref: '#/components/schemas/Kobo' }, net: { $ref: '#/components/schemas/Kobo' } }
+    GroupSummary:
+      type: object
+      required: [group, memberCount, expenseCount, totalSpent, viewerDebts, lastActivityAt]
+      properties: { group: { $ref: '#/components/schemas/Group' }, memberCount: { type: integer }, expenseCount: { type: integer }, totalSpent: { $ref: '#/components/schemas/Kobo' }, viewerDebts: { oneOf: [{ $ref: '#/components/schemas/MemberDebtSummary' }, { type: 'null' }] }, lastActivityAt: { $ref: '#/components/schemas/IsoDate' } }
+    CreateGroupInput:
+      type: object
+      required: [name]
+      properties: { name: { type: string }, description: { type: string }, currency: { $ref: '#/components/schemas/CurrencyCode' }, memberNames: { type: array, items: { type: string } } }
+    UpdateGroupInput:
+      type: object
+      minProperties: 1
+      properties: { name: { type: string }, description: { type: string } }
+    CreateQuickSplitInput:
+      type: object
+      required: [memberNames]
+      properties: { name: { type: string }, memberNames: { type: array, minItems: 2, items: { type: string } } }
+    AddMemberInput: { type: object, required: [displayName], properties: { displayName: { type: string } } }
+    InviteToken: { type: object, required: [token], properties: { token: { type: string } } }
+    InvitePreview:
+      type: object
+      required: [groupId, groupName, memberCount, valid]
+      properties: { groupId: { $ref: '#/components/schemas/Id' }, groupName: { type: string }, memberCount: { type: integer }, valid: { type: boolean } }
+    AcceptInviteInput: { type: object, properties: { displayName: { type: string } } }
+    InviteUserInput: { type: object, required: [email], properties: { email: { type: string, format: email } } }
+    ExpensePayerInput: { type: object, required: [memberId, amount], properties: { memberId: { $ref: '#/components/schemas/Id' }, amount: { $ref: '#/components/schemas/Kobo' } } }
+    ExpenseParticipantInput: { type: object, required: [memberId], properties: { memberId: { $ref: '#/components/schemas/Id' }, allocationValue: { type: number, description: Kobo for custom, percent for percentage, shares for shares; ignored for equal. } } }
+    ExpenseInput:
+      type: object
+      required: [groupId, description, totalAmount, expenseDate, splitMethod, payers, participants]
+      properties: { groupId: { $ref: '#/components/schemas/Id' }, description: { type: string }, totalAmount: { $ref: '#/components/schemas/Kobo' }, expenseDate: { type: string, format: date }, splitMethod: { $ref: '#/components/schemas/SplitMethod' }, payers: { type: array, items: { $ref: '#/components/schemas/ExpensePayerInput' } }, participants: { type: array, items: { $ref: '#/components/schemas/ExpenseParticipantInput' } }, receipt: { oneOf: [{ $ref: '#/components/schemas/UploadedFile' }, { type: 'null' }] } }
+    ExpenseUpdateInput:
+      type: object
+      required: [description, totalAmount, expenseDate, splitMethod, payers, participants]
+      properties: { description: { type: string }, totalAmount: { $ref: '#/components/schemas/Kobo' }, expenseDate: { type: string, format: date }, splitMethod: { $ref: '#/components/schemas/SplitMethod' }, payers: { type: array, items: { $ref: '#/components/schemas/ExpensePayerInput' } }, participants: { type: array, items: { $ref: '#/components/schemas/ExpenseParticipantInput' } }, receipt: { oneOf: [{ $ref: '#/components/schemas/UploadedFile' }, { type: 'null' }] } }
+    UploadedFile: { type: object, required: [fileName, fileUrl], properties: { fileName: { type: string }, fileUrl: { type: string, format: uri } } }
+    Receipt: { type: object, required: [id, expenseId, fileName, fileUrl, createdAt], properties: { id: { $ref: '#/components/schemas/Id' }, expenseId: { $ref: '#/components/schemas/Id' }, fileName: { type: string }, fileUrl: { type: string }, createdAt: { $ref: '#/components/schemas/IsoDate' } } }
+    ExpensePayer: { $ref: '#/components/schemas/ExpensePayerInput' }
+    ExpenseParticipant: { type: object, required: [memberId, allocationValue, calculatedAmount], properties: { memberId: { $ref: '#/components/schemas/Id' }, allocationValue: { type: number }, calculatedAmount: { $ref: '#/components/schemas/Kobo' } } }
+    Expense:
+      type: object
+      required: [id, groupId, createdBy, description, totalAmount, currency, expenseDate, splitMethod, payers, participants, receipt, createdAt, updatedAt, deletedAt]
+      properties: { id: { $ref: '#/components/schemas/Id' }, groupId: { $ref: '#/components/schemas/Id' }, createdBy: { $ref: '#/components/schemas/Id' }, description: { type: string }, totalAmount: { $ref: '#/components/schemas/Kobo' }, currency: { $ref: '#/components/schemas/CurrencyCode' }, expenseDate: { type: string, format: date }, splitMethod: { $ref: '#/components/schemas/SplitMethod' }, payers: { type: array, items: { $ref: '#/components/schemas/ExpensePayer' } }, participants: { type: array, items: { $ref: '#/components/schemas/ExpenseParticipant' } }, receipt: { oneOf: [{ $ref: '#/components/schemas/Receipt' }, { type: 'null' }] }, createdAt: { $ref: '#/components/schemas/IsoDate' }, updatedAt: { $ref: '#/components/schemas/IsoDate' }, deletedAt: { oneOf: [{ $ref: '#/components/schemas/IsoDate' }, { type: 'null' }] } }
+    MarkPaidInput: { type: object, required: [groupId, fromMemberId, toMemberId, amount], properties: { groupId: { $ref: '#/components/schemas/Id' }, fromMemberId: { $ref: '#/components/schemas/Id' }, toMemberId: { $ref: '#/components/schemas/Id' }, amount: { $ref: '#/components/schemas/Kobo' } } }
+    Settlement: { type: object, required: [id, groupId, fromMemberId, toMemberId, amount, status, paidAt, markedPaidBy, createdAt], properties: { id: { $ref: '#/components/schemas/Id' }, groupId: { $ref: '#/components/schemas/Id' }, fromMemberId: { $ref: '#/components/schemas/Id' }, toMemberId: { $ref: '#/components/schemas/Id' }, amount: { $ref: '#/components/schemas/Kobo' }, status: { type: string, enum: [paid] }, paidAt: { $ref: '#/components/schemas/IsoDate' }, markedPaidBy: { $ref: '#/components/schemas/Id' }, createdAt: { $ref: '#/components/schemas/IsoDate' } } }
+    ViewerContext: { type: object, required: [memberId, isAdmin, canEditGroup, canManageMembers, canManageInvite], properties: { memberId: { oneOf: [{ $ref: '#/components/schemas/Id' }, { type: 'null' }] }, isAdmin: { type: boolean }, canEditGroup: { type: boolean }, canManageMembers: { type: boolean }, canManageInvite: { type: boolean } } }
+    DebtEdge: { type: object, required: [fromMemberId, toMemberId, amount, expenseId, expenseDescription, expenseDate], properties: { fromMemberId: { $ref: '#/components/schemas/Id' }, toMemberId: { $ref: '#/components/schemas/Id' }, amount: { $ref: '#/components/schemas/Kobo' }, expenseId: { $ref: '#/components/schemas/Id' }, expenseDescription: { type: string }, expenseDate: { type: string, format: date } } }
+    PairDebt: { type: object, required: [fromMemberId, toMemberId, grossAmount, settledAmount, outstandingAmount, edges], properties: { fromMemberId: { $ref: '#/components/schemas/Id' }, toMemberId: { $ref: '#/components/schemas/Id' }, grossAmount: { $ref: '#/components/schemas/Kobo' }, settledAmount: { $ref: '#/components/schemas/Kobo' }, outstandingAmount: { $ref: '#/components/schemas/Kobo' }, edges: { type: array, items: { $ref: '#/components/schemas/DebtEdge' } } } }
+    MemberBalance: { type: object, required: [memberId, displayName, totalPaid, totalShare, netBalance], properties: { memberId: { $ref: '#/components/schemas/Id' }, displayName: { type: string }, totalPaid: { $ref: '#/components/schemas/Kobo' }, totalShare: { $ref: '#/components/schemas/Kobo' }, netBalance: { $ref: '#/components/schemas/Kobo' } } }
+    GroupBalances: { type: object, required: [groupId, currency, members, debts], properties: { groupId: { $ref: '#/components/schemas/Id' }, currency: { $ref: '#/components/schemas/CurrencyCode' }, members: { type: array, items: { $ref: '#/components/schemas/MemberBalance' } }, debts: { type: array, items: { $ref: '#/components/schemas/PairDebt' } } } }
+    GroupDetail: { type: object, required: [group, members, expenses, balances, settlements, activities, viewer], properties: { group: { $ref: '#/components/schemas/Group' }, members: { type: array, items: { $ref: '#/components/schemas/GroupMember' } }, expenses: { type: array, items: { $ref: '#/components/schemas/Expense' } }, balances: { $ref: '#/components/schemas/GroupBalances' }, settlements: { type: array, items: { $ref: '#/components/schemas/Settlement' } }, activities: { type: array, items: { $ref: '#/components/schemas/Activity' } }, viewer: { $ref: '#/components/schemas/ViewerContext' } } }
+    Activity: { type: object, required: [id, groupId, actorId, actorName, action, entityType, entityId, summary, createdAt], properties: { id: { $ref: '#/components/schemas/Id' }, groupId: { $ref: '#/components/schemas/Id' }, actorId: { oneOf: [{ $ref: '#/components/schemas/Id' }, { type: 'null' }] }, actorName: { type: string }, action: { type: string }, entityType: { type: string, enum: [expense, member, group, settlement, invite] }, entityId: { oneOf: [{ $ref: '#/components/schemas/Id' }, { type: 'null' }] }, summary: { type: string }, createdAt: { $ref: '#/components/schemas/IsoDate' } } }
+    AppNotification: { type: object, required: [id, userId, groupId, type, title, message, readAt, createdAt], properties: { id: { $ref: '#/components/schemas/Id' }, userId: { $ref: '#/components/schemas/Id' }, groupId: { oneOf: [{ $ref: '#/components/schemas/Id' }, { type: 'null' }] }, type: { type: string, enum: [expense_created, expense_edited, expense_deleted, debt_marked_paid, group_invitation] }, title: { type: string }, message: { type: string }, readAt: { oneOf: [{ $ref: '#/components/schemas/IsoDate' }, { type: 'null' }] }, createdAt: { $ref: '#/components/schemas/IsoDate' } } }
+    UnreadCount: { type: object, required: [count], properties: { count: { type: integer, minimum: 0 } } }
+    DashboardData: { type: object, required: [user, groups, quickSplits, totals, recentActivity, unreadNotifications], properties: { user: { oneOf: [{ $ref: '#/components/schemas/User' }, { type: 'null' }] }, groups: { type: array, items: { $ref: '#/components/schemas/GroupSummary' } }, quickSplits: { type: array, items: { $ref: '#/components/schemas/GroupSummary' } }, totals: { $ref: '#/components/schemas/MemberDebtSummary' }, recentActivity: { type: array, items: { $ref: '#/components/schemas/Activity' } }, unreadNotifications: { type: integer } } }
+    ApiError: { type: object, properties: { code: { type: string, enum: [validation, not_found, forbidden, unauthenticated, conflict] }, message: { type: string }, issues: { type: array, items: { $ref: '#/components/schemas/ValidationIssue' } } } }
+    ValidationIssue: { type: object, required: [field, message], properties: { field: { type: string, enum: [description, totalAmount, expenseDate, payers, participants, allocation] }, message: { type: string } } }
