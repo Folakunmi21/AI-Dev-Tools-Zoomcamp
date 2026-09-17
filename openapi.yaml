@@ -312,10 +312,10 @@ paths:
 components:
   securitySchemes:
     sessionCookie:
-      type: apiKey
-      in: cookie
-      name: session
-      description: Session cookie sent automatically by the browser (credentials=include).
+      type: http
+      scheme: bearer
+      bearerFormat: opaque token
+      description: Bearer token returned by /auth/register and /auth/login.
   parameters:
     GroupId: { name: groupId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
     MemberId: { name: memberId, in: path, required: true, schema: { $ref: '#/components/schemas/Id' } }
@@ -342,7 +342,7 @@ components:
     Session:
       type: object
       required: [user]
-      properties: { user: { oneOf: [{ $ref: '#/components/schemas/User' }, { type: 'null' }] } }
+      properties: { user: { oneOf: [{ $ref: '#/components/schemas/User' }, { type: 'null' }] }, access_token: { type: string, nullable: true }, token_type: { type: string, nullable: true, example: bearer } }
     RegisterInput:
       type: object
       required: [name, email, password]
