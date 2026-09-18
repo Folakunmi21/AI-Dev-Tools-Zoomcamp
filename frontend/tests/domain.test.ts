@@ -78,6 +78,25 @@ describe('split calculations', () => {
 })
 
 describe('group balances', () => {
+  it('routes a multi-payer shortfall to the payer who covered extra', () => {
+    const expenseWithTwoPayers = expense({
+      totalAmount: fromMajor(90_000),
+      payers: [
+        { memberId: 'a', amount: fromMajor(30_000) },
+        { memberId: 'b', amount: fromMajor(60_000) },
+      ],
+      participants: [
+        { memberId: 'a', allocationValue: 1, calculatedAmount: fromMajor(30_000) },
+        { memberId: 'b', allocationValue: 1, calculatedAmount: fromMajor(30_000) },
+        { memberId: 'c', allocationValue: 1, calculatedAmount: fromMajor(30_000) },
+      ],
+    })
+
+    expect(expenseDebtEdges(expenseWithTwoPayers)).toEqual([
+      expect.objectContaining({ fromMemberId: 'c', toMemberId: 'b', amount: fromMajor(30_000) }),
+    ])
+  })
+
   it('keeps obligations per expense and does not simplify chains', () => {
     const first = expense()
     const second = expense({

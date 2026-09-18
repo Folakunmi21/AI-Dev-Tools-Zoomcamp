@@ -7,10 +7,10 @@ import type { ExpenseInput, UploadedFile } from '../services/types'
 import { ErrorNotice, Field } from './ui'
 
 const SPLIT_METHODS: Array<{ value: SplitMethod; label: string; hint: string }> = [
-  { value: 'equal', label: 'Equally', hint: 'Divided evenly between everyone selected.' },
-  { value: 'custom', label: 'Custom amounts', hint: 'Enter exact amounts. They must add up to the total.' },
-  { value: 'percentage', label: 'Percentages', hint: 'Enter percentages. They must add up to 100%.' },
-  { value: 'shares', label: 'Shares', hint: 'Enter shares, e.g. 2 / 1 / 1. Split proportionally.' },
+  { value: 'equal', label: 'Equally', hint: 'Everyone pays the same share.' },
+  { value: 'custom', label: 'Exact amounts', hint: 'Set what each person owes.' },
+  { value: 'percentage', label: 'Percentages', hint: 'Split by percentages up to 100%.' },
+  { value: 'shares', label: 'Shares', hint: 'Use a ratio like 2 : 1 : 1.' },
 ]
 
 interface Props {
@@ -204,31 +204,50 @@ export function ExpenseForm({ group, members, expense, defaultPayerId, onSaved, 
           />
         </Field>
 
-        <Field label="Split">
-          <select
-            value={splitMethod}
-            onChange={(event) => setSplitMethod(event.target.value as SplitMethod)}
-          >
+        <div className="field">
+          <span className="field-label">How should it be split?</span>
+          <div className="choice-grid split-choices" role="group" aria-label="Split method">
             {SPLIT_METHODS.map((method) => (
-              <option key={method.value} value={method.value}>
-                {method.label}
-              </option>
+              <button
+                key={method.value}
+                type="button"
+                className={`choice-card ${splitMethod === method.value ? 'selected' : ''}`}
+                aria-pressed={splitMethod === method.value}
+                onClick={() => setSplitMethod(method.value)}
+              >
+                <strong>{method.label}</strong>
+                <span>{method.hint}</span>
+              </button>
             ))}
-          </select>
-        </Field>
+          </div>
+        </div>
       </div>
 
       <fieldset className="block">
         <legend>
           Paid by
+        </legend>
+
+        <div className="choice-grid payer-choices" role="group" aria-label="Payer setup">
           <button
             type="button"
-            className="link small"
-            onClick={() => setMultiplePayers((current) => !current)}
+            className={`choice-card ${!multiplePayers ? 'selected' : ''}`}
+            aria-pressed={!multiplePayers}
+            onClick={() => setMultiplePayers(false)}
           >
-            {multiplePayers ? 'Use a single payer' : 'Split across multiple payers'}
+            <strong>One payer</strong>
+            <span>One person covered the full amount.</span>
           </button>
-        </legend>
+          <button
+            type="button"
+            className={`choice-card ${multiplePayers ? 'selected' : ''}`}
+            aria-pressed={multiplePayers}
+            onClick={() => setMultiplePayers(true)}
+          >
+            <strong>Multiple payers</strong>
+            <span>Enter exactly what each person paid.</span>
+          </button>
+        </div>
 
         {multiplePayers ? (
           <>

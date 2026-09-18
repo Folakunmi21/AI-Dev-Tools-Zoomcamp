@@ -102,6 +102,11 @@ h3 { margin: 1.25rem 0 .75rem; font-size: 1rem; }
 .field { display: grid; gap: .4rem; }
 .field-label { font-size: .86rem; font-weight: 700; }
 .field-hint { color: var(--muted); font-size: .78rem; line-height: 1.4; }
+.password-input { position: relative; display: block; }
+.password-input input { padding-right: 3rem; }
+.password-toggle { position: absolute; top: 50%; right: .35rem; width: 2.25rem; padding: .3rem; transform: translateY(-50%); }
+.password-toggle:hover { transform: translateY(-50%); }
+.password-toggle svg { display: block; width: 1.15rem; height: 1.15rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 input, textarea, select { width: 100%; padding: .72rem .8rem; border: 1px solid #d4dbe8; border-radius: 9px; outline: none; color: var(--ink); background: #fff; transition: border .2s, box-shadow .2s; }
 input:focus, textarea:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px #3155d91a; }
 .button, button { border: 0; border-radius: 9px; padding: .7rem 1rem; font-weight: 700; transition: transform .15s, background .2s, box-shadow .2s; }
@@ -122,6 +127,12 @@ input:focus, textarea:focus, select:focus { border-color: var(--blue); box-shado
 .row { display: flex; gap: .65rem; align-items: center; }
 .row input { flex: 1; }
 .block { display: grid; gap: .8rem; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; }
+.choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.split-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.choice-card { display: grid; gap: .2rem; min-height: 4.25rem; padding: .75rem; border: 1px solid #d4dbe8; border-radius: 10px; color: var(--ink); background: #fff; text-align: left; }
+.choice-card strong { font-size: .86rem; }
+.choice-card span { color: var(--muted); font-size: .75rem; font-weight: 400; line-height: 1.35; }
+.choice-card.selected { border-color: var(--blue); background: #eef2ff; box-shadow: 0 0 0 2px #3155d91a; }
 .notice { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; border-radius: 10px; font-size: .9rem; }
 .notice.info { color: #394f91; background: #edf2ff; }
 .notice.error, .alert { color: #a33d3d; background: #fff0ef; }
