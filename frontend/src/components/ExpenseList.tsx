@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { formatMoney } from '../domain/money'
+import { expenseDebtEdges } from '../domain/split'
 import type { Expense, GroupMember, Id } from '../domain/types'
 import { useMutation } from '../hooks/useQuery'
 import type { GroupDetail } from '../services/types'
@@ -46,6 +47,7 @@ export function ExpenseList({ detail, onChanged }: { detail: GroupDetail; onChan
         {expenses.map((expense) => {
           const isMine = expense.createdBy === viewer.memberId
           const open = expanded === expense.id
+          const debtEdges = expenseDebtEdges(expense)
           return (
             <li key={expense.id} className="expense">
               <button
@@ -85,6 +87,23 @@ export function ExpenseList({ detail, onChanged }: { detail: GroupDetail; onChan
                       ))}
                     </tbody>
                   </table>
+
+                  <div className="expense-debts">
+                    <h3>Who owes whom</h3>
+                    {debtEdges.length === 0 ? (
+                      <p className="muted small">Everyone is settled for this expense.</p>
+                    ) : (
+                      <ul className="plain expense-debt-list">
+                        {debtEdges.map((edge, index) => (
+                          <li key={`${edge.fromMemberId}-${edge.toMemberId}-${index}`}>
+                            <strong>{nameOf(edge.fromMemberId)}</strong> owes{' '}
+                            <strong>{nameOf(edge.toMemberId)}</strong>{' '}
+                            {formatMoney(edge.amount, expense.currency)}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
 
                   {expense.receipt && (
                     <figure className="receipt-preview">

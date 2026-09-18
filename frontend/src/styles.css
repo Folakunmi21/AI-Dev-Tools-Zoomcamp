@@ -83,6 +83,9 @@ h3 { margin: 1.25rem 0 .75rem; font-size: 1rem; }
 .expense-main { display: grid; gap: .35rem; }
 .expense-amount { color: var(--ink); font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
 .expense-detail { padding: 0 1rem 1rem; border-top: 1px solid var(--line); }
+.expense-debts { padding: .85rem 0; border-top: 1px solid var(--line); }
+.expense-debts h3 { margin: 0 0 .55rem; font-size: .95rem; }
+.expense-debt-list { display: grid; gap: .35rem; }
 .expense-actions { display: flex; justify-content: space-between; gap: 1rem; padding-top: 1rem; }
 .balance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; }
 .balance-card { display: grid; gap: .35rem; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, #fff, #f7f9ff); }
