@@ -102,9 +102,15 @@ h3 { margin: 1.25rem 0 .75rem; font-size: 1rem; }
 .notification { display: flex; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
 .notification.unread { padding-left: .75rem; border-left: 3px solid var(--blue); background: #fafbff; }
 .budget-items { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; }
-.budget-item { display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center; padding: .85rem 0; border-bottom: 1px solid var(--line); }
+.budget-item { display: grid; grid-template-columns: minmax(0, 1fr) minmax(7rem, auto) 4rem 4.5rem; gap: 1rem; align-items: center; padding: .85rem 0; border-bottom: 1px solid var(--line); }
+.budget-head { padding: 0 .25rem .45rem; border-bottom: 2px solid var(--line); color: var(--muted); font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.budget-head > :nth-child(2), .budget-item > :nth-child(2) { text-align: right; }
+.budget-done-heading, .budget-done-cell { text-align: center; }
+.done-toggle { display: inline-grid; width: 2rem; height: 2rem; place-items: center; padding: 0; border: 2px solid #c7d0df; border-radius: 8px; color: #fff; background: #fff; font-size: 1.15rem; line-height: 1; }
+.done-toggle:hover { border-color: var(--blue); background: #f1f4ff; transform: none; }
+.done-toggle.checked { border-color: var(--blue); background: var(--blue); box-shadow: 0 3px 8px #3155d932; }
 .budget-item.paid { color: var(--muted); }
-.budget-item.paid .checkbox span { text-decoration: line-through; }
+.budget-item.paid .budget-expense-name { text-decoration: line-through; }
 
 .field { display: grid; gap: .4rem; }
 .field-label { font-size: .86rem; font-weight: 700; }

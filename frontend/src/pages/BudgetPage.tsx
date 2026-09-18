@@ -47,18 +47,34 @@ export function BudgetPage() {
 
       <Card title="Expenses">
         {data.items.length === 0 ? <EmptyState title="No expenses added" body="Add your first expense above." /> : (
-          <ul className="budget-items">
-            {data.items.map((item) => (
-              <li key={item.id} className={`budget-item ${item.isPaid ? 'paid' : ''}`}>
-                <label className="checkbox">
-                  <input type="checkbox" checked={item.isPaid} onChange={(event) => updateItem.mutate(item.id, event.target.checked)} />
-                  <span>{item.name}</span>
-                </label>
-                <strong>{formatMoney(item.amount, data.currency)}</strong>
-                <button type="button" className="link danger" onClick={() => removeItem.mutate(item.id)}>Remove</button>
-              </li>
-            ))}
-          </ul>
+          <div className="budget-table" role="table" aria-label="Budget expenses">
+            <div className="budget-item budget-head" role="row">
+              <span role="columnheader">Expense</span>
+              <span role="columnheader">Amount</span>
+              <span role="columnheader" className="budget-done-heading">Done</span>
+              <span role="columnheader" />
+            </div>
+            <ul className="budget-items">
+              {data.items.map((item) => (
+                <li key={item.id} className={`budget-item ${item.isPaid ? 'paid' : ''}`} role="row">
+                  <span className="budget-expense-name" role="cell">{item.name}</span>
+                  <strong role="cell">{formatMoney(item.amount, data.currency)}</strong>
+                  <span role="cell" className="budget-done-cell">
+                    <button
+                      type="button"
+                      className={`done-toggle ${item.isPaid ? 'checked' : ''}`}
+                      aria-pressed={item.isPaid}
+                      aria-label={`Mark ${item.name} as ${item.isPaid ? 'not done' : 'done'}`}
+                      onClick={() => updateItem.mutate(item.id, !item.isPaid)}
+                    >
+                      {item.isPaid ? '✓' : ''}
+                    </button>
+                  </span>
+                  <button type="button" className="link danger" onClick={() => removeItem.mutate(item.id)}>Remove</button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         <ErrorNotice error={updateItem.error ?? removeItem.error} />
       </Card>
