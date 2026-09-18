@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, ErrorNotice } from '../components/ui'
 import { useMutation } from '../hooks/useQuery'
-import { DEMO_CREDENTIALS } from '../services'
 import { useSession } from '../state/session-context'
 
 /**
@@ -134,24 +133,6 @@ function AuthPanel() {
         </form>
       </Card>
 
-      {mode === 'login' && (
-        <Card title="Demo account">
-          <p className="muted small">
-            The mock backend ships with sample groups. Sign in as{' '}
-            <code>{DEMO_CREDENTIALS.email}</code> / <code>{DEMO_CREDENTIALS.password}</code>.
-          </p>
-          <button
-            type="button"
-            className="ghost"
-            onClick={() => {
-              setEmail(DEMO_CREDENTIALS.email)
-              setPassword(DEMO_CREDENTIALS.password)
-            }}
-          >
-            Fill demo credentials
-          </button>
-        </Card>
-      )}
     </div>
   )
 }

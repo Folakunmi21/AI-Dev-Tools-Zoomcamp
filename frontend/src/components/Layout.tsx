@@ -52,7 +52,7 @@ export function Layout() {
       <footer className="footer">
         <span>Evenly — MVP. Payments happen outside the app.</span>
         <span className="muted">
-          {import.meta.env?.VITE_API_BASE_URL ? 'Connected to the Evenly API' : 'Running on the mock backend'}
+          Connected to the Evenly API
         </span>
       </footer>
     </div>

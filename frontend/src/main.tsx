@@ -9,8 +9,7 @@ import './styles.css'
 const container = document.getElementById('root')
 if (!container) throw new Error('Missing #root element.')
 
-// One service instance for the whole app. By default this is the mock backend,
-// so the app runs with nothing else installed or deployed.
+// One real API service instance for the whole app.
 const service = createService()
 
 createRoot(container).render(

@@ -3,6 +3,7 @@ import {
   ServiceError,
   type EvenlyService,
   type ExpenseInput,
+  type Session,
   type ServiceErrorCode,
   type UploadedFile,
 } from '../types'
@@ -18,20 +19,27 @@ export interface HttpServiceOptions {
 interface ApiErrorBody {
   code?: ServiceErrorCode
   message?: string
+  detail?: string | Array<{ msg?: string }>
   issues?: ServiceError['issues']
 }
 
 /**
  * The real-backend implementation of {@link EvenlyService}.
  *
- * There is no Evenly server yet — the MVP runs on `createMockService()`. This
- * adapter exists to keep the seam honest: it is the only file in the app that is
- * allowed to call `fetch`, and it shows that swapping in a server is a matter of
- * implementing one interface rather than touching the UI.
+ * This is the only file in the app that calls `fetch`. Keeping that boundary
+ * means the UI remains independent of the transport and API details.
  */
 export function createHttpService(options: HttpServiceOptions): EvenlyService {
   const doFetch = options.fetchImpl ?? globalThis.fetch.bind(globalThis)
   const base = options.baseUrl.replace(/\/$/, '')
+  const tokenKey = 'evenly.access_token'
+  let accessToken: string | null = globalThis.localStorage?.getItem(tokenKey) ?? null
+
+  const setAccessToken = (token: string | null) => {
+    accessToken = token
+    if (token) globalThis.localStorage?.setItem(tokenKey, token)
+    else globalThis.localStorage?.removeItem(tokenKey)
+  }
 
   async function request<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
     let response: Response
@@ -41,6 +49,7 @@ export function createHttpService(options: HttpServiceOptions): EvenlyService {
         credentials: 'include',
         headers: {
           ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+          ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
           ...options.headers,
         },
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -51,6 +60,7 @@ export function createHttpService(options: HttpServiceOptions): EvenlyService {
 
     if (!response.ok) {
       const parsed = (await response.json().catch(() => ({}))) as ApiErrorBody
+      const message = parsed.message ?? (typeof parsed.detail === 'string' ? parsed.detail : parsed.detail?.[0]?.msg)
       const code: ServiceErrorCode =
         parsed.code ??
         (response.status === 404
@@ -62,7 +72,7 @@ export function createHttpService(options: HttpServiceOptions): EvenlyService {
               : response.status === 409
                 ? 'conflict'
                 : 'validation')
-      throw new ServiceError(code, parsed.message ?? 'Something went wrong.', parsed.issues ?? [])
+      throw new ServiceError(code, message ?? 'Something went wrong.', parsed.issues ?? [])
     }
 
     if (response.status === 204) return undefined as T
@@ -73,15 +83,26 @@ export function createHttpService(options: HttpServiceOptions): EvenlyService {
   const post = <T>(path: string, body?: unknown) => request<T>('POST', path, body)
   const patch = <T>(path: string, body?: unknown) => request<T>('PATCH', path, body)
   const del = <T>(path: string) => request<T>('DELETE', path)
+  const authenticate = async (path: string, input: unknown): Promise<Session> => {
+    const response = await post<Session & { access_token?: string }>(path, input)
+    setAccessToken(response.access_token ?? null)
+    return { user: response.user }
+  }
 
   const group = (groupId: Id) => `/groups/${encodeURIComponent(groupId)}`
 
   return {
     auth: {
       getSession: () => get('/auth/session'),
-      register: (input) => post('/auth/register', input),
-      login: (input) => post('/auth/login', input),
-      logout: () => post('/auth/logout'),
+      register: (input) => authenticate('/auth/register', input),
+      login: (input) => authenticate('/auth/login', input),
+      logout: async () => {
+        try {
+          await post('/auth/logout')
+        } finally {
+          setAccessToken(null)
+        }
+      },
     },
     dashboard: {
       get: () => get('/dashboard'),
