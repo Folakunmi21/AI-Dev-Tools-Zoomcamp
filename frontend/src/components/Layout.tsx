@@ -28,6 +28,7 @@ export function Layout() {
             Dashboard
           </NavLink>
           <NavLink to="/groups">Groups</NavLink>
+          <NavLink to="/budgets">Budgets</NavLink>
           {user && (
             <NavLink to="/notifications" className="nav-with-badge">
               Notifications

@@ -8,6 +8,7 @@ import type {
   Settlement,
   User,
 } from '../../domain/types'
+import type { PersonalBudget } from '../types'
 
 /** A user row, with the credential the mock backend checks against. */
 export interface StoredUser extends User {
@@ -24,6 +25,7 @@ export interface MockDb {
   settlements: Settlement[]
   activities: Activity[]
   notifications: AppNotification[]
+  budgets: PersonalBudget[]
   sessionUserId: Id | null
 }
 
@@ -88,6 +90,7 @@ export function emptyDb(): MockDb {
     settlements: [],
     activities: [],
     notifications: [],
+    budgets: [],
     sessionUserId: null,
   }
 }
@@ -97,6 +100,7 @@ export function parseDb(raw: string | null): MockDb | null {
   try {
     const parsed = JSON.parse(raw) as MockDb
     if (!parsed || parsed.version !== DB_VERSION || !Array.isArray(parsed.users)) return null
+    parsed.budgets ??= []
     return parsed
   } catch {
     return null

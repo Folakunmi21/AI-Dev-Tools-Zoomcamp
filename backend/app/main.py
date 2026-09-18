@@ -2,10 +2,10 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from .routers import auth, expenses, groups, notifications, settlements, uploads
+from .routers import auth, budgets, expenses, groups, notifications, settlements, uploads
 
 app = FastAPI(title="Evenly API", version="0.1.0", description="In-memory backend for the Evenly frontend.")
-for router in (auth.router, groups.router, expenses.router, settlements.router, notifications.router, uploads.router):
+for router in (auth.router, budgets.router, groups.router, expenses.router, settlements.router, notifications.router, uploads.router):
     app.include_router(router, prefix="/api")
 
 

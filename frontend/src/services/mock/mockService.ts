@@ -38,6 +38,7 @@ import {
   type InvitePreview,
   type LoginInput,
   type MarkPaidInput,
+  type PersonalBudget,
   type RegisterInput,
   type Session,
   type UploadedFile,
@@ -134,6 +135,13 @@ export function createMockService(options: MockServiceOptions = {}): EvenlyServi
 
   const settlementsOf = (groupId: Id): Settlement[] =>
     db.settlements.filter((settlement) => settlement.groupId === groupId)
+
+  const budgetTotals = (budget: PersonalBudget): PersonalBudget => ({
+    ...budget,
+    totalAmount: sum(budget.items.map((item) => item.amount)),
+    paidAmount: sum(budget.items.filter((item) => item.isPaid).map((item) => item.amount)),
+    remainingAmount: sum(budget.items.filter((item) => !item.isPaid).map((item) => item.amount)),
+  })
 
   /**
    * A guest owns the quick splits in their own browser; once signed in, a user
@@ -419,6 +427,61 @@ export function createMockService(options: MockServiceOptions = {}): EvenlyServi
             recentActivity,
             unreadNotifications,
           }
+        }),
+    },
+    budgets: {
+      list: () =>
+        query(() => {
+          const user = requireUser()
+          return db.budgets.filter((budget) => budget.userId === user.id).map(budgetTotals)
+        }),
+      get: (budgetId) =>
+        query(() => {
+          const user = requireUser()
+          const budget = db.budgets.find((candidate) => candidate.id === budgetId && candidate.userId === user.id)
+          if (!budget) throw notFound('That personal budget')
+          return budgetTotals(budget)
+        }),
+      create: (input) =>
+        transaction(() => {
+          const user = requireUser()
+          if (!input.name.trim()) throw validationError([{ field: 'description', message: 'Give the budget a name.' }])
+          const now = nowIso()
+          const budget: PersonalBudget = { id: newId('bud'), userId: user.id, name: input.name.trim(), currency: input.currency ?? 'NGN', totalAmount: 0, paidAmount: 0, remainingAmount: 0, items: [] }
+          db.budgets.push(budget)
+          return { ...budget, createdAt: now } as PersonalBudget
+        }),
+      addItem: (budgetId, input) =>
+        transaction(() => {
+          const user = requireUser()
+          const budget = db.budgets.find((candidate) => candidate.id === budgetId && candidate.userId === user.id)
+          if (!budget) throw notFound('That personal budget')
+          if (!input.name.trim() || input.amount <= 0) throw validationError([{ field: 'description', message: 'Enter an expense name and a positive amount.' }])
+          const now = nowIso()
+          budget.items.push({ id: newId('bit'), budgetId, name: input.name.trim(), amount: input.amount, isPaid: false, createdAt: now, updatedAt: now })
+          return budgetTotals(budget)
+        }),
+      updateItem: (budgetId, itemId, input) =>
+        transaction(() => {
+          const user = requireUser()
+          const budget = db.budgets.find((candidate) => candidate.id === budgetId && candidate.userId === user.id)
+          const item = budget?.items.find((candidate) => candidate.id === itemId)
+          if (!budget || !item) throw notFound('That budget expense')
+          if (input.name !== undefined) item.name = input.name.trim()
+          if (input.amount !== undefined) item.amount = input.amount
+          if (input.isPaid !== undefined) item.isPaid = input.isPaid
+          item.updatedAt = nowIso()
+          return budgetTotals(budget)
+        }),
+      removeItem: (budgetId, itemId) =>
+        transaction(() => {
+          const user = requireUser()
+          const budget = db.budgets.find((candidate) => candidate.id === budgetId && candidate.userId === user.id)
+          if (!budget) throw notFound('That personal budget')
+          const before = budget.items.length
+          budget.items = budget.items.filter((item) => item.id !== itemId)
+          if (budget.items.length === before) throw notFound('That budget expense')
+          return budgetTotals(budget)
         }),
     },
 

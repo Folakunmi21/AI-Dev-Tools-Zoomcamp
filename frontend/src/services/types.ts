@@ -32,6 +32,45 @@ export interface EvenlyService {
   settlements: SettlementService
   notifications: NotificationService
   uploads: UploadService
+  budgets: BudgetService
+}
+
+/* -------------------------------------------------------------------------- */
+/* Personal budgets                                                           */
+/* -------------------------------------------------------------------------- */
+
+export interface BudgetItem {
+  id: Id
+  budgetId: Id
+  name: string
+  amount: Kobo
+  isPaid: boolean
+  createdAt: IsoDate
+  updatedAt: IsoDate
+}
+
+export interface PersonalBudget {
+  id: Id
+  userId: Id
+  name: string
+  currency: CurrencyCode
+  totalAmount: Kobo
+  paidAmount: Kobo
+  remainingAmount: Kobo
+  items: BudgetItem[]
+}
+
+export interface BudgetService {
+  list(): Promise<PersonalBudget[]>
+  get(budgetId: Id): Promise<PersonalBudget>
+  create(input: { name: string; currency?: CurrencyCode }): Promise<PersonalBudget>
+  addItem(budgetId: Id, input: { name: string; amount: Kobo }): Promise<PersonalBudget>
+  updateItem(
+    budgetId: Id,
+    itemId: Id,
+    input: { name?: string; amount?: Kobo; isPaid?: boolean },
+  ): Promise<PersonalBudget>
+  removeItem(budgetId: Id, itemId: Id): Promise<PersonalBudget>
 }
 
 /* -------------------------------------------------------------------------- */

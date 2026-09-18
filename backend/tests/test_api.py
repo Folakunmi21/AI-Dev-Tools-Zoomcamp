@@ -85,3 +85,22 @@ def test_logout_revokes_bearer_token(client):
     headers = auth(token)
     assert client.post("/api/auth/logout", headers=headers).status_code == 204
     assert client.get("/api/notifications", headers=headers).status_code == 401
+
+
+def test_personal_budget_recalculates_when_items_are_paid(client):
+    token = login(client)
+    headers = auth(token)
+    created = client.post("/api/budgets", headers=headers, json={"name": "September bills"})
+    assert created.status_code == 201
+    budget_id = created.json()["id"]
+
+    first = client.post(f"/api/budgets/{budget_id}/items", headers=headers, json={"name": "Rent", "amount": 100000})
+    second = client.post(f"/api/budgets/{budget_id}/items", headers=headers, json={"name": "Internet", "amount": 15000})
+    assert first.json()["totalAmount"] == 100000
+    assert second.json()["remainingAmount"] == 115000
+
+    item_id = first.json()["items"][0]["id"]
+    paid = client.patch(f"/api/budgets/{budget_id}/items/{item_id}", headers=headers, json={"isPaid": True})
+    assert paid.status_code == 200
+    assert paid.json()["paidAmount"] == 100000
+    assert paid.json()["remainingAmount"] == 15000

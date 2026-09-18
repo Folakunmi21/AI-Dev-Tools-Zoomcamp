@@ -90,6 +90,7 @@ export function createHttpService(options: HttpServiceOptions): EvenlyService {
   }
 
   const group = (groupId: Id) => `/groups/${encodeURIComponent(groupId)}`
+  const budget = (budgetId: Id) => `/budgets/${encodeURIComponent(budgetId)}`
 
   return {
     auth: {
@@ -106,6 +107,16 @@ export function createHttpService(options: HttpServiceOptions): EvenlyService {
     },
     dashboard: {
       get: () => get('/dashboard'),
+    },
+    budgets: {
+      list: () => get('/budgets'),
+      get: (budgetId) => get(budget(budgetId)),
+      create: (input) => post('/budgets', input),
+      addItem: (budgetId, input) => post(`${budget(budgetId)}/items`, input),
+      updateItem: (budgetId, itemId, input) =>
+        patch(`${budget(budgetId)}/items/${encodeURIComponent(itemId)}`, input),
+      removeItem: (budgetId, itemId) =>
+        del(`${budget(budgetId)}/items/${encodeURIComponent(itemId)}`),
     },
     groups: {
       list: () => get('/groups'),

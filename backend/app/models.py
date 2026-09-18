@@ -83,6 +83,43 @@ class UpdateGroupInput(BaseModel):
     description: str | None = None
 
 
+class BudgetItem(BaseModel):
+    id: Id
+    budgetId: Id
+    name: str
+    amount: int
+    isPaid: bool
+    createdAt: datetime
+    updatedAt: datetime
+
+
+class PersonalBudget(BaseModel):
+    id: Id
+    userId: Id
+    name: str
+    currency: CurrencyCode = "NGN"
+    totalAmount: int
+    paidAmount: int
+    remainingAmount: int
+    items: list[BudgetItem]
+
+
+class CreateBudgetInput(BaseModel):
+    name: str
+    currency: CurrencyCode = "NGN"
+
+
+class CreateBudgetItemInput(BaseModel):
+    name: str
+    amount: int = Field(gt=0)
+
+
+class UpdateBudgetItemInput(BaseModel):
+    name: str | None = None
+    amount: int | None = Field(default=None, gt=0)
+    isPaid: bool | None = None
+
+
 class CreateQuickSplitInput(BaseModel):
     name: str | None = None
     memberNames: list[str] = Field(min_length=2)
@@ -312,4 +349,5 @@ class StoreData(BaseModel):
     settlements: dict[str, Settlement] = {}
     activities: dict[str, Activity] = {}
     notifications: dict[str, AppNotification] = {}
+    budgets: dict[str, PersonalBudget] = {}
     tokens: dict[str, str] = {}

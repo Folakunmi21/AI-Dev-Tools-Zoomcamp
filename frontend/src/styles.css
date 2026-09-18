@@ -101,6 +101,10 @@ h3 { margin: 1.25rem 0 .75rem; font-size: 1rem; }
 .member > span:first-child { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; }
 .notification { display: flex; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
 .notification.unread { padding-left: .75rem; border-left: 3px solid var(--blue); background: #fafbff; }
+.budget-items { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; }
+.budget-item { display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center; padding: .85rem 0; border-bottom: 1px solid var(--line); }
+.budget-item.paid { color: var(--muted); }
+.budget-item.paid .checkbox span { text-decoration: line-through; }
 
 .field { display: grid; gap: .4rem; }
 .field-label { font-size: .86rem; font-weight: 700; }

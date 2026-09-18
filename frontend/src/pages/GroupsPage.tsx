@@ -47,6 +47,9 @@ export function GroupsPage() {
           <button type="button" className="primary" onClick={() => setCreating(true)}>
             Create group
           </button>
+          <Link to="/budgets" className="button ghost">
+            Personal budgets
+          </Link>
         </div>
       </header>
 
