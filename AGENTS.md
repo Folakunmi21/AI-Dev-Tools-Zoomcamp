@@ -2,6 +2,7 @@
 
 - Use `uv` for backend dependency management.
 - Run backend commands from `backend/`.
+- Configure the backend database with `DATABASE_URL`; omit it to use the local SQLite default.
 
 Useful backend commands:
 

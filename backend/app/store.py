@@ -1,8 +1,17 @@
-"""The process-local data store and deterministic seed data."""
+"""SQLAlchemy-backed persistence for the Evenly domain.
+
+The routers continue to work with the existing Pydantic domain objects, while
+this module handles serialization and database access in one place. The
+database URL is configured with ``DATABASE_URL`` and defaults to SQLite.
+"""
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+import os
+from datetime import timedelta, datetime, timezone
 from uuid import uuid4
+
+from sqlalchemy import JSON, String, create_engine, select
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from .models import *
 
@@ -15,10 +24,81 @@ def new_id(prefix: str) -> str:
     return f"{prefix}_{uuid4().hex[:10]}"
 
 
+class Base(DeclarativeBase):
+    pass
+
+
+class EntityRow(Base):
+    __tablename__ = "evenly_entities"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(40), index=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+
+ENTITY_FIELDS = {
+    "users": ("user", StoredUser),
+    "groups": ("group", Group),
+    "members": ("member", GroupMember),
+    "expenses": ("expense", Expense),
+    "settlements": ("settlement", Settlement),
+    "activities": ("activity", Activity),
+    "notifications": ("notification", AppNotification),
+    "budgets": ("budget", PersonalBudget),
+}
+
+
 class Store:
-    def __init__(self) -> None:
+    """Database-backed store retaining the old domain-object boundary."""
+
+    def __init__(self, database_url: str | None = None):
+        self.database_url = database_url or os.getenv("DATABASE_URL", "sqlite:///./evenly.db")
+        connect_args = {"check_same_thread": False} if self.database_url.startswith("sqlite") else {}
+        self.engine = create_engine(self.database_url, connect_args=connect_args, future=True)
+        Base.metadata.create_all(self.engine)
+        self.session_factory = sessionmaker(self.engine, expire_on_commit=False)
+        self.data = StoreData()
+        self.load()
+        if not self.has_entities():
+            self.seed()
+            self.persist()
+
+    def has_entities(self) -> bool:
+        with self.session_factory() as session:
+            return session.scalar(select(EntityRow.id).limit(1)) is not None
+
+    def load(self) -> None:
+        loaded = StoreData()
+        with self.session_factory() as session:
+            rows = session.scalars(select(EntityRow)).all()
+        for row in rows:
+            for field, (kind, model) in ENTITY_FIELDS.items():
+                if row.kind == kind:
+                    getattr(loaded, field)[row.id] = model.model_validate(row.payload)
+                    break
+            else:
+                if row.kind == "token":
+                    loaded.tokens[row.id] = row.payload["user_id"]
+        self.data = loaded
+
+    def persist(self) -> None:
+        with self.session_factory() as session:
+            session.query(EntityRow).delete()
+            rows: list[EntityRow] = []
+            for field, (kind, _) in ENTITY_FIELDS.items():
+                for entity_id, entity in getattr(self.data, field).items():
+                    rows.append(EntityRow(id=entity_id, kind=kind, payload=entity.model_dump(mode="json")))
+            rows.extend(EntityRow(id=token, kind="token", payload={"user_id": user_id}) for token, user_id in self.data.tokens.items())
+            session.add_all(rows)
+            session.commit()
+
+    def reset(self) -> None:
+        with self.session_factory() as session:
+            session.query(EntityRow).delete()
+            session.commit()
         self.data = StoreData()
         self.seed()
+        self.persist()
 
     def seed(self) -> None:
         from .auth import hash_password
@@ -47,7 +127,7 @@ class Store:
         self.data.notifications["ntf_1"] = AppNotification(id="ntf_1", userId=ada.id, groupId=lagos.id, type="expense_created", title="New expense in Lagos Trip", message="Kunmi added an expense", readAt=None, createdAt=ago(3))
 
     def _activity(self, id, group_id, actor_id, actor_name, action, entity_type, entity_id, summary, created):
-        self.data.activities[id] = Activity(id=id, groupId=group_id, actorId=actor_id, actorName=actor_name, action=action, entityType=entity_type, entityId=entity_id, summary=summary, createdAt=created)
+        self.data.activities[id] = Activity(id=new_id("act"), groupId=group_id, actorId=actor_id, actorName=actor_name, action=action, entityType=entity_type, entityId=entity_id, summary=summary, createdAt=created)
 
     def _add_expense(self, id, group_id, actor, description, total, method, payers, participants, created):
         weights = [v for _, v in participants]

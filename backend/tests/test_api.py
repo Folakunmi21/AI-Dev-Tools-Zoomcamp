@@ -7,8 +7,8 @@ from app.store import store
 
 @pytest.fixture(autouse=True)
 def reset_store():
-    # Each test starts with the useful demo dataset.
-    store.__init__()
+    # Each test starts with the useful demo dataset in the configured database.
+    store.reset()
 
 
 @pytest.fixture

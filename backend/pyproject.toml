@@ -1,12 +1,13 @@
 [project]
 name = "evenly-backend"
 version = "0.1.0"
-description = "In-memory FastAPI backend for Evenly"
+description = "Database-backed FastAPI backend for Evenly"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115,<1",
   "uvicorn[standard]>=0.30,<1",
   "python-multipart>=0.0.9,<1",
+  "sqlalchemy>=2.0.54",
 ]
 
 [dependency-groups]
