@@ -19,13 +19,13 @@ help:
 run: backend-run
 
 backend-install:
-	cd backend && UV_CACHE_DIR="$(UV_CACHE_DIR)" uv sync
+	cd backend && uv --cache-dir "$(UV_CACHE_DIR)" sync
 
 backend-run: backend-install
-	cd backend && UV_CACHE_DIR="$(UV_CACHE_DIR)" uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+	cd backend && uv --cache-dir "$(UV_CACHE_DIR)" run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 backend-test: backend-install
-	cd backend && UV_CACHE_DIR="$(UV_CACHE_DIR)" uv run pytest
+	cd backend && uv --cache-dir "$(UV_CACHE_DIR)" run pytest
 
 frontend-install:
 	cd frontend && npm install
