@@ -1,0 +1,10 @@
+.git
+.gitignore
+backend/.venv
+backend/.uv-cache
+backend/*.db
+frontend/node_modules
+frontend/dist
+frontend/coverage
+**/__pycache__
+**/.pytest_cache
