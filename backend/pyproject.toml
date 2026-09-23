@@ -8,6 +8,7 @@ dependencies = [
   "uvicorn[standard]>=0.30,<1",
   "python-multipart>=0.0.9,<1",
   "sqlalchemy>=2.0.54",
+  "psycopg[binary]>=3.2,<4",
 ]
 
 [dependency-groups]

@@ -17,7 +17,7 @@ FastAPI backend. The product direction and MVP requirements are documented in
 - Multiple payers for an expense
 - Balance and debt tracking without automatic debt simplification
 - Budgets, settlements, notifications, and activity views
-- SQLite by default, with database configuration through `DATABASE_URL`
+- SQLite by default, with PostgreSQL support through `DATABASE_URL`
 - Docker image that builds and serves the frontend from the backend
 
 ## Project structure
@@ -44,13 +44,22 @@ uv sync
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-The default database is `backend/evenly.db`. To use another database, set
-`DATABASE_URL` before starting the server:
+The default database is `backend/evenly.db`. To use PostgreSQL, set
+`DATABASE_URL` before starting the server. The backend includes the
+`psycopg` driver:
 
 ```powershell
 $env:DATABASE_URL = "sqlite:///./evenly.db"
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
+
+```powershell
+$env:DATABASE_URL = "postgresql+psycopg://evenly:secret@localhost:5432/evenly"
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+The PostgreSQL database must already exist, and the configured user must be
+allowed to create tables.
 
 The API documentation is available at <http://127.0.0.1:8000/docs>.
 
