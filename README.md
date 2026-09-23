@@ -87,6 +87,16 @@ docker run --rm -p 8000:8000 evenly
 
 Open <http://127.0.0.1:8000> after the container starts.
 
+To run the app with PostgreSQL using Docker Compose:
+
+```powershell
+docker compose up --build
+```
+
+The app is available at <http://127.0.0.1:8000>. PostgreSQL data is persisted
+in the `postgres-data` volume. You can override `POSTGRES_DB`, `POSTGRES_USER`,
+and `POSTGRES_PASSWORD` with environment variables before starting Compose.
+
 ## Testing
 
 Run the backend tests from `backend/`:
