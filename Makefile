@@ -4,16 +4,19 @@
 # default user cache directory is not writable.
 UV_CACHE_DIR ?= $(CURDIR)/backend/.uv-cache
 
-.PHONY: help backend-install backend-run backend-test frontend-install frontend-run test
+.PHONY: help run backend-install backend-run backend-test frontend-install frontend-run test
 
 help:
 	@echo "Available targets:"
+	@echo "  make run              Start the FastAPI backend on port 8000"
 	@echo "  make backend-install  Install backend dependencies"
 	@echo "  make backend-run      Start the FastAPI backend on port 8000"
 	@echo "  make backend-test     Run backend tests"
 	@echo "  make frontend-install Install frontend dependencies"
 	@echo "  make frontend-run     Start the Vite frontend"
 	@echo "  make test             Run backend and frontend tests"
+
+run: backend-run
 
 backend-install:
 	cd backend && UV_CACHE_DIR="$(UV_CACHE_DIR)" uv sync
