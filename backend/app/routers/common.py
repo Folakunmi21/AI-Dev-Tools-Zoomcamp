@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import date
 from fastapi import HTTPException
 
 from ..models import *
@@ -68,26 +69,40 @@ def validate_expense(group: Group, value: ExpenseInput | ExpenseUpdateInput) -> 
 
 
 def balances(group: Group) -> GroupBalances:
-    ms = members(group.id); paid = defaultdict(int); share = defaultdict(int); debts: dict[tuple[str, str], list[DebtEdge]] = defaultdict(list)
+    ms = members(group.id); paid = defaultdict(int); share = defaultdict(int); expenses = []
     for e in store.data.expenses.values():
         if e.groupId != group.id or e.deletedAt: continue
+        expenses.append(e)
         for p in e.payers: paid[p.memberId] += p.amount
         for p in e.participants: share[p.memberId] += p.calculatedAmount
-        net = {m.id: 0 for m in ms}
-        for p in e.payers: net[p.memberId] += p.amount
-        for p in e.participants: net[p.memberId] -= p.calculatedAmount
-        debtors = [[m, -n] for m, n in net.items() if n < 0]; creditors = [[m, n] for m, n in net.items() if n > 0]
-        for debtor, amount in debtors:
-            for creditor in creditors:
-                if amount <= 0: break
-                take = min(amount, creditor[1]); creditor[1] -= take; amount -= take
-                if take: debts[(debtor, creditor[0])].append(DebtEdge(fromMemberId=debtor, toMemberId=creditor[0], amount=take, expenseId=e.id, expenseDescription=e.description, expenseDate=e.expenseDate))
+
+    # Net all expenses before creating payments. This produces the smallest
+    # set of transfers needed to settle the group instead of preserving the
+    # intermediate debt edges from each individual expense.
+    net = {m.id: paid[m.id] - share[m.id] for m in ms}
+    debtors = [[member_id, -amount] for member_id, amount in net.items() if amount < 0]
+    creditors = [[member_id, amount] for member_id, amount in net.items() if amount > 0]
+    simplified: list[tuple[str, str, int]] = []
+    for debtor, amount in debtors:
+        for creditor in creditors:
+            if amount <= 0: break
+            take = min(amount, creditor[1]); creditor[1] -= take; amount -= take
+            if take: simplified.append((debtor, creditor[0], take))
+
     settled = defaultdict(int)
     for s in store.data.settlements.values(): settled[(s.fromMemberId, s.toMemberId)] += s.amount
     pairs = []
-    for (source, target), edges in debts.items():
-        gross = sum(e.amount for e in edges); paid_amount = min(gross, settled[(source, target)])
-        pairs.append(PairDebt(fromMemberId=source, toMemberId=target, grossAmount=gross, settledAmount=paid_amount, outstandingAmount=gross-paid_amount, edges=edges))
+    source_date = max((e.expenseDate for e in expenses), default=date.today())
+    for source, target, gross in simplified:
+        paid_amount = min(gross, settled[(source, target)])
+        pairs.append(PairDebt(
+            fromMemberId=source,
+            toMemberId=target,
+            grossAmount=gross,
+            settledAmount=paid_amount,
+            outstandingAmount=gross - paid_amount,
+            edges=[DebtEdge(fromMemberId=source, toMemberId=target, amount=gross, expenseId="combined", expenseDescription="Combined group balance", expenseDate=source_date)],
+        ))
     return GroupBalances(groupId=group.id, currency=group.currency, members=[MemberBalance(memberId=m.id, displayName=m.displayName, totalPaid=paid[m.id], totalShare=share[m.id], netBalance=paid[m.id]-share[m.id]) for m in ms], debts=pairs)
 
 
