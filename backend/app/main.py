@@ -31,9 +31,18 @@ async def database_request_boundary(request: Request, call_next):
     """Refresh the domain snapshot and persist successful request mutations."""
     store.load()
     response = await call_next(request)
-    if response.status_code < 400:
+    if request.url.path != "/health" and response.status_code < 400:
         store.persist()
     return response
+
+
+@app.get("/health", tags=["Health"])
+def health():
+    try:
+        store.check_connection()
+    except Exception:
+        return JSONResponse(status_code=503, content={"status": "unhealthy", "database": "unavailable"})
+    return {"status": "ok", "database": "ok"}
 
 
 @app.exception_handler(RequestValidationError)

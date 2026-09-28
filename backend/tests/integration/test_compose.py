@@ -47,7 +47,14 @@ def compose(project: str, *args: str, env: dict[str, str] | None = None, check: 
 @pytest.fixture(scope="module")
 def api() -> httpx.Client:
     project = f"evenly-integration-{uuid4().hex[:10]}"
-    compose_env = {"POSTGRES_HOST_PORT": str(free_port()), "APP_HOST_PORT": str(free_port())}
+    compose_env = {
+        "POSTGRES_HOST_PORT": str(free_port()),
+        "APP_HOST_PORT": str(free_port()),
+        "POSTGRES_DB": "evenly",
+        "POSTGRES_USER": "evenly",
+        "POSTGRES_PASSWORD": "integration-only",
+        "SEED_DEMO_DATA": "false",
+    }
     base_url = f"http://127.0.0.1:{compose_env['APP_HOST_PORT']}"
     try:
         compose(project, "up", "--build", "-d", env=compose_env)

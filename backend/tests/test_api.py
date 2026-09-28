@@ -36,6 +36,12 @@ def test_seeded_session_and_dashboard(client):
     assert dashboard.json()["groups"][0]["group"]["name"] == "Lagos Trip"
 
 
+def test_health_checks_database(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "database": "ok"}
+
+
 def test_passwords_are_hashed_and_protected_routes_require_bearer(client):
     assert store.data.users["usr_ada"].passwordHash != "password"
     assert client.post("/api/groups", json={"name": "Nope"}).status_code == 401
@@ -68,6 +74,9 @@ def test_guest_quick_split_invite_preview_and_upload(client):
     upload = client.post("/api/uploads/receipts", files={"file": ("receipt.png", b"png", "image/png")})
     assert upload.status_code == 200
     assert upload.json()["fileName"] == "receipt.png"
+    stored = client.get(upload.json()["fileUrl"])
+    assert stored.status_code == 200
+    assert stored.content == b"png"
 
 
 def test_notifications_can_be_read(client):

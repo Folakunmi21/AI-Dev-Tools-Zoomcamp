@@ -17,7 +17,7 @@ FastAPI backend. The product direction and MVP requirements are documented in
 - Multiple payers for an expense
 - Balance and debt tracking without automatic debt simplification
 - Budgets, settlements, notifications, and activity views
-- SQLite by default, with PostgreSQL support through `DATABASE_URL`
+- PostgreSQL through `DATABASE_URL`, with SQLite retained as an explicit local fallback
 - Docker image that builds and serves the frontend from the backend
 
 ## Project structure
@@ -44,22 +44,25 @@ uv sync
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-The default database is `backend/evenly.db`. To use PostgreSQL, set
-`DATABASE_URL` before starting the server. The backend includes the
+Set `DATABASE_URL` before starting the server. The backend includes the
 `psycopg` driver:
+
+```powershell
+$env:DATABASE_URL = "postgresql+psycopg://evenly:evenly@localhost:5432/evenly"
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
 
 ```powershell
 $env:DATABASE_URL = "sqlite:///./evenly.db"
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-```powershell
-$env:DATABASE_URL = "postgresql+psycopg://evenly:secret@localhost:5432/evenly"
-uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
 The PostgreSQL database must already exist, and the configured user must be
 allowed to create tables.
+
+Copy `.env.example` to `.env` for local settings. Set `SEED_DEMO_DATA=true`
+only for local development; production should leave it false. `GET /health`
+checks both the application and database connection.
 
 The API documentation is available at <http://127.0.0.1:8000/docs>.
 
@@ -93,9 +96,24 @@ To run the app with PostgreSQL using Docker Compose:
 docker compose up --build
 ```
 
-The app is available at <http://127.0.0.1:8000>. PostgreSQL data is persisted
-in the `postgres-data` volume. You can override `POSTGRES_DB`, `POSTGRES_USER`,
-and `POSTGRES_PASSWORD` with environment variables before starting Compose.
+The app is available at <http://127.0.0.1:8000>. Copy `.env.example` to `.env`
+before starting Compose. PostgreSQL data is persisted in the `postgres-data`
+volume and receipts in `receipts-data`. Compose builds the internal
+`postgresql+psycopg://...@postgres:5432/...` URL from the `POSTGRES_*` values.
+
+The application currently creates tables with SQLAlchemy `create_all` on
+startup; Alembic is not installed. This is acceptable for the initial MVP
+deployment, but migrations should be added before repeated production schema
+changes.
+
+Receipts are stored in `RECEIPT_STORAGE_DIR`. The Compose volume preserves them
+locally. Railway/Render production must configure a persistent volume or add a
+provider-specific object-storage adapter; the application does not yet select
+or integrate a cloud storage provider.
+
+Enable automated PostgreSQL backups and confirm a restore procedure in the
+selected hosting provider's database settings. Backups are intentionally not
+implemented inside the application.
 
 ## Testing
 

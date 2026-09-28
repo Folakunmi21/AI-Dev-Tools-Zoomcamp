@@ -10,7 +10,7 @@ import os
 from datetime import timedelta, datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import JSON, String, create_engine, select
+from sqlalchemy import JSON, String, create_engine, select, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from .models import *
@@ -52,16 +52,25 @@ class Store:
     """Database-backed store retaining the old domain-object boundary."""
 
     def __init__(self, database_url: str | None = None):
-        self.database_url = database_url or os.getenv("DATABASE_URL", "sqlite:///./evenly.db")
+        configured_url = database_url or os.getenv("DATABASE_URL", "sqlite:///./evenly.db")
+        if configured_url.startswith("postgres://"):
+            configured_url = "postgresql+psycopg://" + configured_url.removeprefix("postgres://")
+        elif configured_url.startswith("postgresql://"):
+            configured_url = "postgresql+psycopg://" + configured_url.removeprefix("postgresql://")
+        self.database_url = configured_url
         connect_args = {"check_same_thread": False} if self.database_url.startswith("sqlite") else {}
         self.engine = create_engine(self.database_url, connect_args=connect_args, future=True)
         Base.metadata.create_all(self.engine)
         self.session_factory = sessionmaker(self.engine, expire_on_commit=False)
         self.data = StoreData()
         self.load()
-        if not self.has_entities():
+        if os.getenv("SEED_DEMO_DATA", "false").lower() in {"1", "true", "yes"} and not self.has_entities():
             self.seed()
             self.persist()
+
+    def check_connection(self) -> None:
+        with self.session_factory() as session:
+            session.execute(text("SELECT 1"))
 
     def has_entities(self) -> bool:
         with self.session_factory() as session:

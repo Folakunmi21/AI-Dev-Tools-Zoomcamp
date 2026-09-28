@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-evenly}
-      POSTGRES_USER: ${POSTGRES_USER:-evenly}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-evenly}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
       - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
@@ -25,9 +25,14 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-evenly}:${POSTGRES_PASSWORD:-evenly}@postgres:5432/${POSTGRES_DB:-evenly}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
+      RECEIPT_STORAGE_DIR: /data/receipts
     ports:
       - "${APP_HOST_PORT:-8000}:8000"
+    volumes:
+      - receipts-data:/data/receipts
 
 volumes:
   postgres-data:
+  receipts-data:

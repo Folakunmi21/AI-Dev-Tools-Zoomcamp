@@ -3,4 +3,8 @@ dist
 coverage
 *.local
 .DS_Store
+.env
+.env.*
+!.env.example
+.evenly-receipts/
 backend/*.db

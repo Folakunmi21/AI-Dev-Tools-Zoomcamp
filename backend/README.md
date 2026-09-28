@@ -1,11 +1,10 @@
 # Evenly backend
 
 The backend uses SQLAlchemy for database access. Configure the database with
-the `DATABASE_URL` environment variable; the default is a SQLite database in
-the backend directory:
+the `DATABASE_URL` environment variable. For local PostgreSQL development:
 
 ```powershell
-$env:DATABASE_URL = "sqlite:///./evenly.db"
+$env:DATABASE_URL = "postgresql+psycopg://evenly:evenly@localhost:5432/evenly"
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
@@ -20,7 +19,7 @@ postgresql+psycopg://user:password@localhost/evenly
 For example, on PowerShell:
 
 ```powershell
-$env:DATABASE_URL = "postgresql+psycopg://evenly:secret@localhost:5432/evenly"
+$env:DATABASE_URL = "postgresql+psycopg://evenly:evenly@localhost:5432/evenly"
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
@@ -28,5 +27,9 @@ The database must already exist and the configured user must have permission
 to create tables. SQLAlchemy creates the application table automatically on
 startup.
 
-The development seed data is inserted only when the configured database is
-empty. It is not recreated when the server restarts.
+SQLite remains available as an explicit fallback with
+`DATABASE_URL=sqlite:///./evenly.db`. The development seed data is inserted
+only when `SEED_DEMO_DATA=true` and the configured database is empty. Production
+should leave this variable unset or false. `GET /health` verifies database
+connectivity. Tables are currently initialized with SQLAlchemy `create_all`;
+no migration system is installed yet.
