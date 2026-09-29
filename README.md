@@ -126,9 +126,10 @@ created by the old `create_all` startup behavior must be checked against the
 initial revision and then marked with `uv run alembic stamp head`.
 
 Receipts are stored in `RECEIPT_STORAGE_DIR`. The Compose volume preserves them
-locally. Railway/Render production must configure a persistent volume or add a
-provider-specific object-storage adapter; the application does not yet select
-or integrate a cloud storage provider.
+locally. The free Render service has no persistent disk, so a real deployment
+must add a provider-specific object-storage adapter before relying on receipt
+uploads; the application does not yet select or integrate a cloud storage
+provider.
 
 Enable automated PostgreSQL backups and confirm a restore procedure in the
 selected hosting provider's database settings. Backups are intentionally not
@@ -157,14 +158,24 @@ Evenly is under active development. The repository contains the current MVP
 implementation and the next product requirements are tracked in the product
 specification.
 
-## Railway deployment
+## Free deployment with Render and Supabase
 
-Create a Railway project with a PostgreSQL service and an application service
-connected to this repository. Set the application service's `DATABASE_URL` to
-Railway's reference variable for the PostgreSQL service. The repository's
-`railway.json` runs `alembic upgrade head` as a pre-deploy command, and the
-container listens on Railway's injected `PORT`.
+The repository includes `render.yaml` for a free Render Docker Web Service.
+Create a free Supabase project for PostgreSQL, then add its PostgreSQL
+connection string as the Render service's `DATABASE_URL` secret. Do not commit
+that value.
 
-After deployment, add a Railway-generated public domain to the application
-service and verify `GET /health`. Do not put production credentials in the
-repository; configure them as Railway service variables.
+Render's free Web Service does not support pre-deploy commands, so apply the
+schema explicitly before the first deployment and after each schema migration:
+
+```powershell
+cd backend
+$env:DATABASE_URL = "<supabase-postgresql-url>"
+uv run alembic upgrade head
+```
+
+Then create a Render Blueprint from this repository and verify the deployed
+service with `GET /health`. The Dockerfile already listens on Render's
+injected `PORT`. Free Render services sleep when idle and have ephemeral local
+storage; receipt files therefore need object storage before relying on this as
+a production deployment.
