@@ -28,12 +28,22 @@ class SPAStaticFiles(StaticFiles):
 
 @app.middleware("http")
 async def database_request_boundary(request: Request, call_next):
-    """Refresh the domain snapshot and persist successful request mutations."""
-    store.load()
-    response = await call_next(request)
-    if request.url.path != "/health" and response.status_code < 400:
-        store.persist()
-    return response
+    """Run each request's repository work in one transaction."""
+    unit_of_work = store.begin_request()
+    token = store.bind(unit_of_work)
+    try:
+        response = await call_next(request)
+        if response.status_code < 400:
+            unit_of_work.commit()
+        else:
+            unit_of_work.rollback()
+        return response
+    except Exception:
+        unit_of_work.rollback()
+        raise
+    finally:
+        unit_of_work.close()
+        store.unbind(token)
 
 
 @app.get("/health", tags=["Health"])
