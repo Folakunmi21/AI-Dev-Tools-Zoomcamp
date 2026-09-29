@@ -16,17 +16,24 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
 
-      - name: Run backend tests
+      - name: Install backend dependencies
         working-directory: backend
-        run: |
-          uv sync --frozen
-          uv run pytest
+        run: uv sync --frozen --python 3.12
+
+      - name: Run backend unit tests
+        working-directory: backend
+        run: uv run --python 3.12 pytest tests/test_api.py tests/test_store.py
 
   frontend-tests:
     name: Frontend tests
@@ -67,6 +74,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -86,8 +98,8 @@ jobs:
       - name: Run backend Compose integration tests
         working-directory: backend
         run: |
-          uv sync --frozen
-          uv run pytest tests/integration/test_compose.py
+          uv sync --frozen --python 3.12
+          uv run --python 3.12 pytest tests/integration/test_compose.py
 
       - name: Install E2E dependencies
         working-directory: e2e
@@ -113,6 +125,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -123,8 +140,8 @@ jobs:
         working-directory: backend
         run: |
           test -n "$DATABASE_URL"
-          uv sync --frozen
-          uv run alembic upgrade head
+          uv sync --frozen --python 3.12
+          uv run --python 3.12 alembic upgrade head
 
       - name: Trigger Render deployment
         id: render-deploy
