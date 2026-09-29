@@ -10,9 +10,10 @@ import os
 from datetime import timedelta, datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import JSON, String, create_engine, select, text
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
+from sqlalchemy import create_engine, select, text
+from sqlalchemy.orm import sessionmaker
 
+from .db import Base, EntityRow
 from .models import *
 
 
@@ -22,18 +23,6 @@ def utcnow() -> datetime:
 
 def new_id(prefix: str) -> str:
     return f"{prefix}_{uuid4().hex[:10]}"
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-class EntityRow(Base):
-    __tablename__ = "evenly_entities"
-
-    id: Mapped[str] = mapped_column(String(100), primary_key=True)
-    kind: Mapped[str] = mapped_column(String(40), index=True)
-    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
 
 
 ENTITY_FIELDS = {
@@ -60,7 +49,6 @@ class Store:
         self.database_url = configured_url
         connect_args = {"check_same_thread": False} if self.database_url.startswith("sqlite") else {}
         self.engine = create_engine(self.database_url, connect_args=connect_args, future=True)
-        Base.metadata.create_all(self.engine)
         self.session_factory = sessionmaker(self.engine, expire_on_commit=False)
         self.data = StoreData()
         self.load()

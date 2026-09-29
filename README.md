@@ -49,16 +49,18 @@ Set `DATABASE_URL` before starting the server. The backend includes the
 
 ```powershell
 $env:DATABASE_URL = "postgresql+psycopg://evenly:evenly@localhost:5432/evenly"
+uv run alembic upgrade head
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ```powershell
 $env:DATABASE_URL = "sqlite:///./evenly.db"
+uv run alembic upgrade head
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 The PostgreSQL database must already exist, and the configured user must be
-allowed to create tables.
+allowed to run migrations.
 
 Copy `.env.example` to `.env` for local settings. Set `SEED_DEMO_DATA=true`
 only for local development; production should leave it false. `GET /health`
@@ -85,7 +87,8 @@ Build and run the combined application from the repository root:
 
 ```powershell
 docker build -t evenly .
-docker run --rm -p 8000:8000 evenly
+docker run --rm --env DATABASE_URL="<migrated-database-url>" evenly alembic upgrade head
+docker run --rm -p 8000:8000 --env DATABASE_URL="<migrated-database-url>" evenly
 ```
 
 Open <http://127.0.0.1:8000> after the container starts.
@@ -98,13 +101,29 @@ docker compose up --build
 
 The app is available at <http://127.0.0.1:8000>. Copy `.env.example` to `.env`
 before starting Compose. PostgreSQL data is persisted in the `postgres-data`
-volume and receipts in `receipts-data`. Compose builds the internal
+volume and receipts in `receipts-data`. Compose runs the one-shot `migrate`
+service to apply Alembic migrations before starting the API, and builds the internal
 `postgresql+psycopg://...@postgres:5432/...` URL from the `POSTGRES_*` values.
 
-The application currently creates tables with SQLAlchemy `create_all` on
-startup; Alembic is not installed. This is acceptable for the initial MVP
-deployment, but migrations should be added before repeated production schema
-changes.
+Database schema changes are managed with Alembic. The application does not
+run `create_all` or alter the schema on startup. For a fresh database:
+
+```powershell
+cd backend
+$env:DATABASE_URL = "postgresql+psycopg://evenly:evenly@localhost:5432/evenly"
+uv run alembic upgrade head
+uv run alembic current
+```
+
+After changing SQLAlchemy metadata, create and review a migration:
+
+```powershell
+uv run alembic revision --autogenerate -m "describe the schema change"
+```
+
+Apply future migrations with `uv run alembic upgrade head`. Existing databases
+created by the old `create_all` startup behavior must be checked against the
+initial revision and then marked with `uv run alembic stamp head`.
 
 Receipts are stored in `RECEIPT_STORAGE_DIR`. The Compose volume preserves them
 locally. Railway/Render production must configure a persistent volume or add a

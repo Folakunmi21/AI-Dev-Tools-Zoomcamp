@@ -24,12 +24,32 @@ uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 The database must already exist and the configured user must have permission
-to create tables. SQLAlchemy creates the application table automatically on
-startup.
+to run migrations. The application expects the database to be migrated before
+it starts and does not call SQLAlchemy `create_all`.
 
 SQLite remains available as an explicit fallback with
 `DATABASE_URL=sqlite:///./evenly.db`. The development seed data is inserted
 only when `SEED_DEMO_DATA=true` and the configured database is empty. Production
 should leave this variable unset or false. `GET /health` verifies database
-connectivity. Tables are currently initialized with SQLAlchemy `create_all`;
-no migration system is installed yet.
+connectivity.
+
+## Migrations
+
+Run these commands from `backend/`:
+
+```powershell
+$env:DATABASE_URL = "postgresql+psycopg://evenly:evenly@localhost:5432/evenly"
+uv run alembic upgrade head       # create/update the schema
+uv run alembic current             # show the applied revision
+uv run alembic heads               # show the latest repository revision
+```
+
+After changing SQLAlchemy metadata, create and review a migration:
+
+```powershell
+uv run alembic revision --autogenerate -m "describe the schema change"
+```
+
+For an existing database created by the former `create_all` behavior, verify
+that it matches `alembic/versions/0001_initial_schema.py`, then run
+`uv run alembic stamp head` once. Fresh databases should use `upgrade head`.
