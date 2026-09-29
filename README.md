@@ -165,6 +165,11 @@ Create a free Supabase project for PostgreSQL, then add its PostgreSQL
 connection string as the Render service's `DATABASE_URL` secret. Do not commit
 that value.
 
+For Render or an IPv4-only local network, copy the **Session pooler** string
+from Supabase's Connect dialog, not the direct `db.<project-ref>.supabase.co`
+string. The direct endpoint is IPv6-only on the free plan. The session pooler
+uses an IPv4 endpoint and remains compatible with SQLAlchemy and Alembic.
+
 Render's free Web Service does not support pre-deploy commands, so apply the
 schema explicitly before the first deployment and after each schema migration:
 
