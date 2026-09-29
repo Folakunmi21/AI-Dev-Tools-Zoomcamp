@@ -14,19 +14,19 @@ def uid(user): return user.id if user else None
 
 @router.get("/dashboard", response_model=DashboardData)
 def dashboard(user=Depends(current_user)):
-    groups = [g for g in store.data.groups.values() if g.kind == "group" and user_member(g.id, uid(user))]
-    quick = [g for g in store.data.groups.values() if g.kind == "quick" and (g.ownerId is None or g.ownerId == uid(user))]
+    groups = [g for g in store.data.groups.values(payload_filters={"kind": "group"}) if user_member(g.id, uid(user))]
+    quick = [g for g in store.data.groups.values(payload_filters={"kind": "quick"}) if g.ownerId is None or g.ownerId == uid(user)]
     summaries = [summary(g, uid(user)) for g in groups]; quick_summaries = [summary(g, uid(user)) for g in quick]
     totals = MemberDebtSummary(owes=sum(s.viewerDebts.owes for s in summaries if s.viewerDebts), owed=sum(s.viewerDebts.owed for s in summaries if s.viewerDebts), net=0)
     totals.net = totals.owed - totals.owes
-    acts = sorted([a for a in store.data.activities.values() if a.groupId in {g.id for g in groups}], key=lambda a: a.createdAt, reverse=True)[:12]
-    unread = sum(1 for n in store.data.notifications.values() if user and n.userId == user.id and n.readAt is None)
+    acts = sorted([a for g in groups for a in store.data.activities.values(payload_filters={"groupId": g.id})], key=lambda a: a.createdAt, reverse=True)[:12]
+    unread = sum(1 for n in (store.data.notifications.values(payload_filters={"userId": user.id}) if user else []) if n.readAt is None)
     return DashboardData(user=public_user(user) if user else None, groups=sorted(summaries, key=lambda s: s.lastActivityAt, reverse=True), quickSplits=quick_summaries, totals=totals, recentActivity=acts, unreadNotifications=unread)
 
 
 @router.get("/groups", response_model=list[GroupSummary])
 def list_groups(user=Depends(current_user)):
-    return [summary(g, uid(user)) for g in store.data.groups.values() if g.kind == "group" and user_member(g.id, uid(user))]
+    return [summary(g, uid(user)) for g in store.data.groups.values(payload_filters={"kind": "group"}) if user_member(g.id, uid(user))]
 
 
 @router.post("/groups", response_model=Group, status_code=201)
@@ -45,8 +45,8 @@ def create_group(value: CreateGroupInput, user=Depends(require_user)):
 @router.get("/groups/{group_id}", response_model=GroupDetail)
 def get_group(group_id: str, user=Depends(current_user)):
     g = group_or_404(group_id); viewer = access(g, uid(user))
-    expenses = sorted([e for e in store.data.expenses.values() if e.groupId == g.id and e.deletedAt is None], key=lambda e: (e.expenseDate, e.createdAt), reverse=True)
-    return GroupDetail(group=g, members=members(g.id), expenses=expenses, balances=balances(g), settlements=sorted([s for s in store.data.settlements.values() if s.groupId == g.id], key=lambda s: s.paidAt, reverse=True), activities=sorted([a for a in store.data.activities.values() if a.groupId == g.id], key=lambda a: a.createdAt, reverse=True), viewer=viewer)
+    expenses = sorted([e for e in store.data.expenses.values(payload_filters={"groupId": g.id}) if e.deletedAt is None], key=lambda e: (e.expenseDate, e.createdAt), reverse=True)
+    return GroupDetail(group=g, members=members(g.id), expenses=expenses, balances=balances(g), settlements=sorted(store.data.settlements.values(payload_filters={"groupId": g.id}), key=lambda s: s.paidAt, reverse=True), activities=sorted(store.data.activities.values(payload_filters={"groupId": g.id}), key=lambda a: a.createdAt, reverse=True), viewer=viewer)
 
 
 @router.patch("/groups/{group_id}", response_model=Group)

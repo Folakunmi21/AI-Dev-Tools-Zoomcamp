@@ -23,7 +23,7 @@ def with_totals(budget: PersonalBudget) -> PersonalBudget:
 
 @router.get("", response_model=list[PersonalBudget])
 def list_budgets(user=Depends(require_user)):
-    return [with_totals(b) for b in store.data.budgets.values() if b.userId == user.id]
+    return [with_totals(b) for b in store.data.budgets.values(payload_filters={"userId": user.id})]
 
 
 @router.post("", response_model=PersonalBudget, status_code=status.HTTP_201_CREATED)

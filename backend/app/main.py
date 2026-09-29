@@ -7,7 +7,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.staticfiles import StaticFiles
 
 from .routers import auth, budgets, expenses, groups, notifications, settlements, uploads
-from .store import store
+from .store import ConcurrentUpdateError, store
 
 app = FastAPI(title="Evenly API", version="0.1.0", description="Database-backed API for the Evenly frontend.")
 for router in (auth.router, budgets.router, groups.router, expenses.router, settlements.router, notifications.router, uploads.router):
@@ -38,6 +38,9 @@ async def database_request_boundary(request: Request, call_next):
         else:
             unit_of_work.rollback()
         return response
+    except ConcurrentUpdateError as exc:
+        unit_of_work.rollback()
+        return JSONResponse(status_code=409, content={"code": "conflict", "message": str(exc), "issues": []})
     except Exception:
         unit_of_work.rollback()
         raise

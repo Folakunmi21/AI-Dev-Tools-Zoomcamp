@@ -40,6 +40,10 @@ ENTITY_FIELDS = {
 _current_unit_of_work: ContextVar["UnitOfWork | None"] = ContextVar("evenly_unit_of_work", default=None)
 
 
+class ConcurrentUpdateError(RuntimeError):
+    """Raised when a request tries to update a stale entity snapshot."""
+
+
 class EntityCollection:
     """Request-scoped mapping backed by one entity kind in the database."""
 
@@ -90,10 +94,11 @@ class EntityCollection:
             raise KeyError(entity_id)
         self.deleted.add(entity_id)
 
-    def values(self):
-        rows = self.unit_of_work.session.scalars(
-            select(EntityRow).where(EntityRow.kind == self.kind)
-        ).all()
+    def values(self, payload_filters: dict[str, str] | None = None):
+        statement = select(EntityRow).where(EntityRow.kind == self.kind)
+        for field, value in (payload_filters or {}).items():
+            statement = statement.where(EntityRow.payload[field].as_string() == value)
+        rows = self.unit_of_work.session.scalars(statement).all()
         values = [self._row_model(row) for row in rows if row.id not in self.deleted]
         persisted_ids = {row.id for row in rows}
         values.extend(
@@ -133,7 +138,7 @@ class EntityCollection:
                 .with_for_update()
             )
             if row is None or row.payload != original:
-                raise RuntimeError(f"Concurrent update detected for {self.kind} {entity_id}.")
+                raise ConcurrentUpdateError(f"Concurrent update detected for {self.kind} {entity_id}.")
             row.payload = payload
 
 

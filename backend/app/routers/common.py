@@ -15,7 +15,7 @@ def group_or_404(group_id: str) -> Group:
 
 
 def members(group_id: str) -> list[GroupMember]:
-    return [m for m in store.data.members.values() if m.groupId == group_id]
+    return store.data.members.values(payload_filters={"groupId": group_id})
 
 
 def user_member(group_id: str, user_id: str | None) -> GroupMember | None:
@@ -70,8 +70,8 @@ def validate_expense(group: Group, value: ExpenseInput | ExpenseUpdateInput) -> 
 
 def balances(group: Group) -> GroupBalances:
     ms = members(group.id); paid = defaultdict(int); share = defaultdict(int); expenses = []
-    for e in store.data.expenses.values():
-        if e.groupId != group.id or e.deletedAt: continue
+    for e in store.data.expenses.values(payload_filters={"groupId": group.id}):
+        if e.deletedAt: continue
         expenses.append(e)
         for p in e.payers: paid[p.memberId] += p.amount
         for p in e.participants: share[p.memberId] += p.calculatedAmount
@@ -90,7 +90,7 @@ def balances(group: Group) -> GroupBalances:
             if take: simplified.append((debtor, creditor[0], take))
 
     settled = defaultdict(int)
-    for s in store.data.settlements.values(): settled[(s.fromMemberId, s.toMemberId)] += s.amount
+    for s in store.data.settlements.values(payload_filters={"groupId": group.id}): settled[(s.fromMemberId, s.toMemberId)] += s.amount
     pairs = []
     source_date = max((e.expenseDate for e in expenses), default=date.today())
     for source, target, gross in simplified:
@@ -107,13 +107,13 @@ def balances(group: Group) -> GroupBalances:
 
 
 def summary(group: Group, user_id: str | None) -> GroupSummary:
-    expenses = [e for e in store.data.expenses.values() if e.groupId == group.id and not e.deletedAt]
+    expenses = [e for e in store.data.expenses.values(payload_filters={"groupId": group.id}) if not e.deletedAt]
     context = access(group, user_id)
     b = balances(group); member_debt = None
     if context.memberId:
         owes = sum(d.outstandingAmount for d in b.debts if d.fromMemberId == context.memberId); owed = sum(d.outstandingAmount for d in b.debts if d.toMemberId == context.memberId)
         member_debt = MemberDebtSummary(owes=owes, owed=owed, net=owed-owes)
-    activity = [a for a in store.data.activities.values() if a.groupId == group.id]
+    activity = store.data.activities.values(payload_filters={"groupId": group.id})
     return GroupSummary(group=group, memberCount=len(members(group.id)), expenseCount=len(expenses), totalSpent=sum(e.totalAmount for e in expenses), viewerDebts=member_debt, lastActivityAt=max([group.createdAt] + [a.createdAt for a in activity]))
 
 

@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -94,6 +95,21 @@ def test_logout_revokes_bearer_token(client):
     headers = auth(token)
     assert client.post("/api/auth/logout", headers=headers).status_code == 204
     assert client.get("/api/notifications", headers=headers).status_code == 401
+
+
+def test_concurrent_update_conflict_is_reported_as_409(client):
+    first = store.begin_request()
+    second = store.begin_request()
+    first.data.groups["grp_lagos"].name = "First update"
+    second.data.groups["grp_lagos"].name = "Stale update"
+    first.commit()
+    first.close()
+
+    with patch.object(store, "begin_request", return_value=second):
+        response = client.get("/health")
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "conflict"
 
 
 def test_personal_budget_recalculates_when_items_are_paid(client):

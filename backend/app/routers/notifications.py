@@ -7,12 +7,13 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 @router.get("", response_model=list[AppNotification])
 def list_notifications(user=Depends(require_user)):
-    return sorted([n for n in store.data.notifications.values() if n.userId == user.id], key=lambda n: n.createdAt, reverse=True)
+    return sorted(store.data.notifications.values(payload_filters={"userId": user.id}), key=lambda n: n.createdAt, reverse=True)
 
 @router.get("/unread-count", response_model=UnreadCount)
 def unread_count(user=Depends(current_user)):
     # This endpoint deliberately remains guest-safe, like the frontend mock.
-    return UnreadCount(count=sum(1 for n in store.data.notifications.values() if user and n.userId == user.id and n.readAt is None))
+    notifications = store.data.notifications.values(payload_filters={"userId": user.id}) if user else []
+    return UnreadCount(count=sum(1 for n in notifications if n.readAt is None))
 
 @router.post("/{notification_id}/read", status_code=204)
 def mark_read(notification_id: str, user=Depends(require_user)):
@@ -22,5 +23,5 @@ def mark_read(notification_id: str, user=Depends(require_user)):
 
 @router.post("/read-all", status_code=204)
 def mark_all_read(user=Depends(require_user)):
-    for n in store.data.notifications.values():
-        if n.userId == user.id and n.readAt is None: n.readAt = utcnow()
+    for n in store.data.notifications.values(payload_filters={"userId": user.id}):
+        if n.readAt is None: n.readAt = utcnow()

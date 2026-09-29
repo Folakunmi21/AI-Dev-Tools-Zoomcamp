@@ -98,6 +98,17 @@ def test_group_records_remain_isolated(repository: Store):
     assert snapshot.expenses["exp_electricity"].description == "Electricity (September)"
 
 
+def test_scoped_collection_reads_filter_by_payload(repository: Store):
+    unit = repository.begin_request()
+    lagos_members = unit.data.members.values(payload_filters={"groupId": "grp_lagos"})
+    apartment_expenses = unit.data.expenses.values(payload_filters={"groupId": "grp_apartment"})
+    unit.rollback()
+    unit.close()
+
+    assert {member.groupId for member in lagos_members} == {"grp_lagos"}
+    assert {expense.groupId for expense in apartment_expenses} == {"grp_apartment"}
+
+
 def test_failed_transaction_rolls_back_prior_changes(repository: Store):
     unit = repository.begin_request()
     unit.data.groups["grp_lagos"].name = "Should roll back"
