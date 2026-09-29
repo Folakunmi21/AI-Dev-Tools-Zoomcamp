@@ -156,3 +156,15 @@ The root `Makefile` also provides `make test`, `make backend-run`, and
 Evenly is under active development. The repository contains the current MVP
 implementation and the next product requirements are tracked in the product
 specification.
+
+## Railway deployment
+
+Create a Railway project with a PostgreSQL service and an application service
+connected to this repository. Set the application service's `DATABASE_URL` to
+Railway's reference variable for the PostgreSQL service. The repository's
+`railway.json` runs `alembic upgrade head` as a pre-deploy command, and the
+container listens on Railway's injected `PORT`.
+
+After deployment, add a Railway-generated public domain to the application
+service and verify `GET /health`. Do not put production credentials in the
+repository; configure them as Railway service variables.
