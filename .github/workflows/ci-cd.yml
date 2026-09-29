@@ -1,0 +1,180 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Run backend tests
+        working-directory: backend
+        run: |
+          uv sync --frozen
+          uv run pytest
+
+  frontend-tests:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Type-check frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test -- --run
+
+  compose-tests:
+    name: Compose integration and E2E tests
+    needs: [backend-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_DB: evenly
+      POSTGRES_USER: evenly
+      POSTGRES_PASSWORD: integration-only
+      SEED_DEMO_DATA: false
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Build the Docker Compose stack
+        run: docker compose build
+
+      - name: Run backend Compose integration tests
+        working-directory: backend
+        run: |
+          uv sync --frozen
+          uv run pytest tests/integration/test_compose.py
+
+      - name: Install E2E dependencies
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run browser E2E tests against Compose
+        working-directory: e2e
+        run: npm test
+
+  deploy:
+    name: Deploy to Render and verify health
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: compose-tests
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+      RENDER_SERVICE_URL: ${{ secrets.RENDER_SERVICE_URL }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Apply production database migrations
+        working-directory: backend
+        run: |
+          test -n "$DATABASE_URL"
+          uv sync --frozen
+          uv run alembic upgrade head
+
+      - name: Trigger Render deployment
+        id: render-deploy
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          test -n "$RENDER_API_KEY"
+          test -n "$RENDER_SERVICE_ID"
+          response=$(curl --fail --silent --show-error \
+            --request POST \
+            --url "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" \
+            --header "Authorization: Bearer ${RENDER_API_KEY}" \
+            --header "Content-Type: application/json" \
+            --data "{\"commitId\":\"${COMMIT_SHA}\"}")
+          deploy_id=$(jq -r '.id // empty' <<< "$response")
+          test -n "$deploy_id"
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for Render deployment
+        env:
+          DEPLOY_ID: ${{ steps.render-deploy.outputs.deploy_id }}
+        run: |
+          for attempt in $(seq 1 90); do
+            response=$(curl --fail --silent --show-error \
+              --url "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys/${DEPLOY_ID}" \
+              --header "Authorization: Bearer ${RENDER_API_KEY}")
+            status=$(jq -r '.status' <<< "$response")
+            echo "Render deployment status: $status"
+            case "$status" in
+              live) exit 0 ;;
+              build_failed|update_failed|pre_deploy_failed|canceled|deactivated)
+                echo "Render deployment failed with status: $status"
+                exit 1
+                ;;
+            esac
+            sleep 10
+          done
+          echo "Timed out waiting for Render deployment ${DEPLOY_ID}"
+          exit 1
+
+      - name: Verify deployed health endpoint
+        run: |
+          test -n "$RENDER_SERVICE_URL"
+          health_url="${RENDER_SERVICE_URL%/}/health"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error "$health_url"; then
+              echo
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Health check failed: $health_url"
+          exit 1

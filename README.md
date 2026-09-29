@@ -184,3 +184,19 @@ service with `GET /health`. The Dockerfile already listens on Render's
 injected `PORT`. Free Render services sleep when idle and have ephemeral local
 storage; receipt files therefore need object storage before relying on this as
 a production deployment.
+
+## CI/CD
+
+`.github/workflows/ci-cd.yml` runs backend and frontend checks in parallel,
+then builds the Compose stack and runs the backend integration and Playwright
+end-to-end tests. Successful pushes to `main` apply production migrations,
+deploy the matching commit to Render, wait for the deployment to become live,
+and verify `/health`.
+
+Configure these GitHub Actions repository secrets:
+
+- `PRODUCTION_DATABASE_URL`: the Supabase Session Pooler URL used by Alembic.
+- `RENDER_API_KEY`: a Render API key with permission to deploy the service.
+- `RENDER_SERVICE_ID`: the Render Web Service ID.
+- `RENDER_SERVICE_URL`: the public Render service URL, such as
+  `https://evenly-example.onrender.com`.
