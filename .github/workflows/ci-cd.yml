@@ -12,6 +12,9 @@ jobs:
   backend-tests:
     name: Backend tests
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./ci-tests.db
+      SEED_DEMO_DATA: true
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -31,9 +34,13 @@ jobs:
         working-directory: backend
         run: uv sync --frozen --python 3.12
 
+      - name: Prepare test database
+        working-directory: backend
+        run: uv run --frozen --python 3.12 alembic upgrade head
+
       - name: Run backend unit tests
         working-directory: backend
-        run: uv run --python 3.12 pytest tests/test_api.py tests/test_store.py
+        run: uv run --frozen --python 3.12 pytest tests/test_api.py tests/test_store.py
 
   frontend-tests:
     name: Frontend tests
