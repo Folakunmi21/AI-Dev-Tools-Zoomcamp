@@ -160,10 +160,12 @@ specification.
 
 ## Free deployment with Render and Supabase
 
-The repository includes `render.yaml` for a free Render Docker Web Service.
-Create a free Supabase project for PostgreSQL, then add its PostgreSQL
-connection string as the Render service's `DATABASE_URL` secret. Do not commit
-that value.
+The repository includes `render.yaml` with two independent free Render Docker
+Web Services: `evenly` is the development environment and
+`evenly-production` is the production environment. Create a separate Supabase
+project (or an otherwise separate PostgreSQL database) for each environment,
+then add each connection string as that service's `DATABASE_URL` secret. Do
+not share databases between the environments or commit either value.
 
 For Render or an IPv4-only local network, copy the **Session pooler** string
 from Supabase's Connect dialog, not the direct `db.<project-ref>.supabase.co`
@@ -179,8 +181,8 @@ $env:DATABASE_URL = "<supabase-postgresql-url>"
 uv run alembic upgrade head
 ```
 
-Then create a Render Blueprint from this repository and verify the deployed
-service with `GET /health`. The Dockerfile already listens on Render's
+Then create or sync a Render Blueprint from this repository and verify both
+services with `GET /health`. The Dockerfile already listens on Render's
 injected `PORT`. Free Render services sleep when idle and have ephemeral local
 storage; receipt files therefore need object storage before relying on this as
 a production deployment.
@@ -197,6 +199,10 @@ Configure these GitHub Actions repository secrets:
 
 - `PRODUCTION_DATABASE_URL`: the Supabase Session Pooler URL used by Alembic.
 - `RENDER_API_KEY`: a Render API key with permission to deploy the service.
-- `RENDER_SERVICE_ID`: the Render Web Service ID.
-- `RENDER_SERVICE_URL`: the public Render service URL, such as
-  `https://evenly-example.onrender.com`.
+- `PRODUCTION_RENDER_SERVICE_ID`: the `evenly-production` Render Web Service ID.
+- `PRODUCTION_RENDER_SERVICE_URL`: the public `evenly-production` service URL,
+  such as `https://evenly-production.onrender.com`.
+
+The existing `evenly` service remains the development deployment. Keep its
+Render service ID, URL, and database separate from the production values; it
+is not deployed by the production CI job.

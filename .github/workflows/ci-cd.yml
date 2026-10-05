@@ -126,8 +126,8 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-      RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-      RENDER_SERVICE_URL: ${{ secrets.RENDER_SERVICE_URL }}
+      RENDER_SERVICE_ID: ${{ secrets.PRODUCTION_RENDER_SERVICE_ID }}
+      RENDER_SERVICE_URL: ${{ secrets.PRODUCTION_RENDER_SERVICE_URL }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
