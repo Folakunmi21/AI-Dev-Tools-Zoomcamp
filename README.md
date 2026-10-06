@@ -161,8 +161,10 @@ specification.
 ## Free deployment with Render and Supabase
 
 The repository includes `render.yaml` with two independent free Render Docker
-Web Services: `evenly` is the development environment and
-`evenly-production` is the production environment. Create a separate Supabase
+Web Services: `dev-evenly-fdcm` is the development environment and
+`evenly-fdcm` is the production environment. Their public URLs are expected to
+be `https://dev-evenly-fdcm.onrender.com` and
+`https://evenly-fdcm.onrender.com`, respectively. Create a separate Supabase
 project (or an otherwise separate PostgreSQL database) for each environment,
 then add each connection string as that service's `DATABASE_URL` secret. Do
 not share databases between the environments or commit either value.
@@ -199,10 +201,9 @@ Configure these GitHub Actions repository secrets:
 
 - `PRODUCTION_DATABASE_URL`: the Supabase Session Pooler URL used by Alembic.
 - `RENDER_API_KEY`: a Render API key with permission to deploy the service.
-- `PRODUCTION_RENDER_SERVICE_ID`: the `evenly-production` Render Web Service ID.
-- `PRODUCTION_RENDER_SERVICE_URL`: the public `evenly-production` service URL,
-  such as `https://evenly-production.onrender.com`.
+- `PRODUCTION_RENDER_SERVICE_ID`: the `evenly-fdcm` Render Web Service ID.
+- `PRODUCTION_RENDER_SERVICE_URL`: `https://evenly-fdcm.onrender.com`.
 
-The existing `evenly` service remains the development deployment. Keep its
-Render service ID, URL, and database separate from the production values; it
-is not deployed by the production CI job.
+The `dev-evenly-fdcm` service is the development deployment. Keep its Render
+service ID, URL, and database separate from the production values; it is not
+deployed by the production CI job.

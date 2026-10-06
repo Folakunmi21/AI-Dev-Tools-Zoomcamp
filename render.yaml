@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: evenly
+    name: dev-evenly-fdcm
     runtime: docker
     plan: free
     autoDeployTrigger: off
@@ -10,7 +10,7 @@ services:
       - key: DATABASE_URL
         sync: false
   - type: web
-    name: evenly-production
+    name: evenly-fdcm
     runtime: docker
     plan: free
     autoDeployTrigger: off
