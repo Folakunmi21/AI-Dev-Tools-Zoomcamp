@@ -193,9 +193,11 @@ a production deployment.
 
 `.github/workflows/ci-cd.yml` runs backend and frontend checks in parallel,
 then builds the Compose stack and runs the backend integration and Playwright
-end-to-end tests. Successful pushes to `main` apply production migrations,
-deploy the matching commit to Render, wait for the deployment to become live,
-and verify `/health`.
+end-to-end tests. Production promotion is manual: run the
+`Promote dev to production` workflow and enter the commit SHA currently
+deployed to `dev-evenly-fdcm`. The workflow applies production migrations,
+deploys that exact commit to Render, waits for it to become live, and verifies
+`/health`.
 
 Configure these GitHub Actions repository secrets:
 
