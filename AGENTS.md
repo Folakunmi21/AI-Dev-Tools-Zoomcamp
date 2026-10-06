@@ -13,3 +13,8 @@ uv run python <PYTHON-FILE>
 ```
 
 - Commit completed changes regularly with clear commit messages.
+
+## Deployment
+
+- Production deployment is manual. Use the `Promote dev to production` GitHub Actions workflow and provide the commit SHA currently deployed to `dev-evenly-fdcm`.
+- Do not deploy production automatically from pushes to `main`.
