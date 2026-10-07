@@ -193,19 +193,38 @@ a production deployment.
 
 `.github/workflows/ci-cd.yml` runs backend and frontend checks in parallel,
 then builds the Compose stack and runs the backend integration and Playwright
-end-to-end tests. Production promotion is manual: run the
-`Promote dev to production` workflow and enter the commit SHA currently
-deployed to `dev-evenly-fdcm`. The workflow applies production migrations,
-deploys that exact commit to Render, waits for it to become live, and verifies
-`/health`.
+end-to-end tests. After those checks pass, it builds the production Docker
+image once, pushes it to GHCR, and deploys its immutable digest to
+`dev-evenly-fdcm`.
+
+The image receives a human-readable version tag in this format:
+
+```text
+YYYY-MM-DD-git-sha
+```
+
+For example: `2026-10-07-a1b2c3d4e5f678901234567890abcdef12345678`.
+The workflow summary also displays the image digest. After validating the
+development deployment, run the `Promote dev to production` workflow and
+provide that digest. The workflow pulls the exact same image, applies
+production migrations from that image, deploys it to Render, waits for it to
+become live, and verifies `/health`.
+
+Both Render services must be configured as image-backed services using the
+GHCR image `ghcr.io/folakunmi21/ai-dev-tools-zoomcamp`, with a GHCR pull
+credential configured in Render. The workflow passes a specific digest on
+each deploy; Render does not rebuild the repository.
 
 Configure these GitHub Actions repository secrets:
 
 - `PRODUCTION_DATABASE_URL`: the Supabase Session Pooler URL used by Alembic.
 - `RENDER_API_KEY`: a Render API key with permission to deploy the service.
+- `DEV_RENDER_SERVICE_ID`: the `dev-evenly-fdcm` Render Web Service ID.
+- `DEV_RENDER_SERVICE_URL`: `https://dev-evenly-fdcm.onrender.com`.
 - `PRODUCTION_RENDER_SERVICE_ID`: the `evenly-fdcm` Render Web Service ID.
 - `PRODUCTION_RENDER_SERVICE_URL`: `https://evenly-fdcm.onrender.com`.
 
-The `dev-evenly-fdcm` service is the development deployment. Keep its Render
-service ID, URL, and database separate from the production values; it is not
-deployed by the production CI job.
+Keep the development and production service IDs, URLs, databases, and Render
+environment variables separate. `GITHUB_TOKEN` is provided automatically by
+GitHub Actions and needs package write access for the build job and package
+read access for the promotion job.

@@ -16,5 +16,5 @@ uv run python <PYTHON-FILE>
 
 ## Deployment
 
-- Production deployment is manual. Use the `Promote dev to production` GitHub Actions workflow and provide the commit SHA currently deployed to `dev-evenly-fdcm`.
+- Production deployment is manual. Use the `Promote dev to production` GitHub Actions workflow and provide the image digest currently deployed to `dev-evenly-fdcm`.
 - Do not deploy production automatically from pushes to `main`.
