@@ -1,15 +1,5 @@
 services:
   - type: web
-    name: dev-evenly-fdcm
-    runtime: docker
-    plan: free
-    autoDeployTrigger: off
-    dockerfilePath: ./Dockerfile
-    healthCheckPath: /health
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-  - type: web
     name: evenly-fdcm
     runtime: docker
     plan: free

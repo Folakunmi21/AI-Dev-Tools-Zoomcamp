@@ -160,14 +160,13 @@ specification.
 
 ## Free deployment with Render and Supabase
 
-The repository includes `render.yaml` with two independent free Render Docker
-Web Services: `dev-evenly-fdcm` is the development environment and
-`evenly-fdcm` is the production environment. Their public URLs are expected to
-be `https://dev-evenly-fdcm.onrender.com` and
-`https://evenly-fdcm.onrender.com`, respectively. Create a separate Supabase
-project (or an otherwise separate PostgreSQL database) for each environment,
-then add each connection string as that service's `DATABASE_URL` secret. Do
-not share databases between the environments or commit either value.
+The existing first Render service is the development environment and should be
+named `dev-evenly-fdcm`. The repository's `render.yaml` manages only the
+production `evenly-fdcm` service; this prevents a Blueprint sync from creating
+a second development service. Use separate Supabase projects (or otherwise
+separate PostgreSQL databases) for development and production, then add each
+connection string as that service's `DATABASE_URL` secret. Do not share
+databases between the environments or commit either value.
 
 For Render or an IPv4-only local network, copy the **Session pooler** string
 from Supabase's Connect dialog, not the direct `db.<project-ref>.supabase.co`
