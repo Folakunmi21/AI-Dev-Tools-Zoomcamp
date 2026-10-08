@@ -16,14 +16,23 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "evenly_entities",
-        sa.Column("id", sa.String(length=100), nullable=False),
-        sa.Column("kind", sa.String(length=40), nullable=False),
-        sa.Column("payload", sa.JSON(), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index("ix_evenly_entities_kind", "evenly_entities", ["kind"], unique=False)
+    # The first production deployment created this table with SQLAlchemy's
+    # former ``create_all`` startup behavior. Make the initial migration
+    # adopt that legacy table instead of failing on CREATE TABLE.
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if not inspector.has_table("evenly_entities"):
+        op.create_table(
+            "evenly_entities",
+            sa.Column("id", sa.String(length=100), nullable=False),
+            sa.Column("kind", sa.String(length=40), nullable=False),
+            sa.Column("payload", sa.JSON(), nullable=False),
+            sa.PrimaryKeyConstraint("id"),
+        )
+
+    index_names = {index["name"] for index in sa.inspect(bind).get_indexes("evenly_entities")}
+    if "ix_evenly_entities_kind" not in index_names:
+        op.create_index("ix_evenly_entities_kind", "evenly_entities", ["kind"], unique=False)
 
 
 def downgrade() -> None:
