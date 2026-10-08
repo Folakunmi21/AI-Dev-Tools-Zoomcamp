@@ -219,9 +219,10 @@ Configure these GitHub Actions repository secrets:
 - `PRODUCTION_DATABASE_URL`: the Supabase Session Pooler URL used by Alembic.
 - `RENDER_API_KEY`: a Render API key with permission to deploy the service.
 - `DEV_RENDER_SERVICE_ID`: the `dev-evenly-fdcm` Render Web Service ID.
-- `DEV_RENDER_SERVICE_URL`: `https://dev-evenly-fdcm.onrender.com`.
+- `DEV_RENDER_SERVICE_URL`: `https://evenly-fdcm.onrender.com` (Render's
+  assigned URL for the `dev-evenly-fdcm` service).
 - `PRODUCTION_RENDER_SERVICE_ID`: the `evenly-fdcm` Render Web Service ID.
-- `PRODUCTION_RENDER_SERVICE_URL`: `https://evenly-fdcm.onrender.com`.
+- `PRODUCTION_RENDER_SERVICE_URL`: `https://evenly-fdcm-23py.onrender.com`.
 
 Keep the development and production service IDs, URLs, databases, and Render
 environment variables separate. `GITHUB_TOKEN` is provided automatically by

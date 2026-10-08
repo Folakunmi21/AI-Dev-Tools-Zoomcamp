@@ -150,7 +150,7 @@ jobs:
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "image_tag=${IMAGE_NAME}:${version}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push production image
+      - name: Build and push image
         id: image
         uses: docker/build-push-action@v6
         with:
