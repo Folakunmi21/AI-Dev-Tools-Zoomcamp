@@ -32,6 +32,29 @@ jobs:
         run: |
           [[ "$IMAGE_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
 
+      - name: Validate production database endpoint
+        run: |
+          test -n "$DATABASE_URL"
+          database_host=$(python - <<'PY'
+          import os
+          from urllib.parse import urlparse
+
+          configured = os.environ["DATABASE_URL"]
+          parsed = urlparse(configured)
+          if not parsed.hostname:
+              raise SystemExit("DATABASE_URL does not contain a hostname")
+          print(parsed.hostname)
+          PY
+          )
+
+          case "$database_host" in
+            db.*.supabase.co)
+              echo "PRODUCTION_DATABASE_URL points to Supabase's direct database endpoint ($database_host)."
+              echo "Use the IPv4-compatible Session Pooler URL from Supabase's Connect dialog in GitHub and Render."
+              exit 1
+              ;;
+          esac
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:

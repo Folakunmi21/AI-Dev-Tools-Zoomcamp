@@ -217,6 +217,9 @@ each deploy; Render does not rebuild the repository.
 Configure these GitHub Actions repository secrets:
 
 - `PRODUCTION_DATABASE_URL`: the Supabase Session Pooler URL used by Alembic.
+  Use this same Session Pooler URL for the production Render service's
+  `DATABASE_URL`; the direct `db.<project-ref>.supabase.co` endpoint is
+  IPv6-only on Supabase's free plan and cannot be reached by these services.
 - `RENDER_API_KEY`: a Render API key with permission to deploy the service.
 - `DEV_RENDER_SERVICE_ID`: the `dev-evenly-fdcm` Render Web Service ID.
 - `DEV_RENDER_SERVICE_URL`: `https://evenly-fdcm.onrender.com` (Render's
