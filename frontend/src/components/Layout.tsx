@@ -50,12 +50,6 @@ export function Layout() {
         <Outlet />
       </main>
 
-      <footer className="footer">
-        <span>Evenly — MVP. Payments happen outside the app.</span>
-        <span className="muted">
-          Connected to the Evenly API
-        </span>
-      </footer>
     </div>
   )
 }
