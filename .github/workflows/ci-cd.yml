@@ -159,6 +159,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ${{ steps.version.outputs.image_tag }}
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.version.outputs.version }}

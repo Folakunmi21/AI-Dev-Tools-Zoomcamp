@@ -8,8 +8,10 @@ from starlette.staticfiles import StaticFiles
 
 from .routers import auth, budgets, expenses, groups, notifications, settlements, uploads
 from .store import ConcurrentUpdateError, store
+from .telemetry import configure_telemetry
 
 app = FastAPI(title="Evenly API", version="0.1.0", description="Database-backed API for the Evenly frontend.")
+configure_telemetry(app)
 for router in (auth.router, budgets.router, groups.router, expenses.router, settlements.router, notifications.router, uploads.router):
     app.include_router(router, prefix="/api")
 

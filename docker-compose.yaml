@@ -27,6 +27,7 @@ services:
       migrate:
         condition: service_completed_successfully
     environment:
+      APP_ENV: development
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
       RECEIPT_STORAGE_DIR: /data/receipts
