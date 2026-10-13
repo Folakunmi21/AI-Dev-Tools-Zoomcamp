@@ -16,8 +16,20 @@ processors:
     timeout: 5s
 
 exporters:
-  # This keeps the standalone project useful without requiring a backend.
-  # Replace this with an OTLP exporter when a telemetry backend is selected.
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+
+  # Keep a local copy in Collector logs while developing pipelines.
   debug:
     verbosity: basic
 
@@ -31,12 +43,12 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [debug]
+      exporters: [otlp/tempo, debug]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [debug]
+      exporters: [prometheus, debug]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [debug]
+      exporters: [loki, debug]
