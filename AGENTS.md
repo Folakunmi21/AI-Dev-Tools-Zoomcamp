@@ -31,5 +31,6 @@ docker compose logs -f otel-collector-contrib
 
 - Do not add Grafana, Prometheus, Loki, or Tempo services to the application
   `docker-compose.yaml`; keep the projects independently startable.
-- The backend sends OTLP traces to `OTEL_EXPORTER_OTLP_ENDPOINT`. For local
-  host-based development, use `http://localhost:4318/v1/traces`.
+- The backend sends OTLP traces and metrics to the Collector. For local
+  host-based development, use `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`
+  or set signal-specific endpoints.

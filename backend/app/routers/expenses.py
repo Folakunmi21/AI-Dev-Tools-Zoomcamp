@@ -10,7 +10,7 @@ router = APIRouter(tags=["Expenses"])
 @router.post("/expenses", response_model=Expense, status_code=201)
 def create(value: ExpenseInput, user=Depends(require_user)):
     group = group_or_404(value.groupId); context = access(group, user.id, write=True)
-    expense = validate_expense(group, value); expense.createdBy = context.memberId
+    expense = validate_expense(group, value, operation="create"); expense.createdBy = context.memberId
     if value.receipt:
         expense.receipt = Receipt(id=new_id("rcp"), expenseId=expense.id, fileName=value.receipt.fileName, fileUrl=value.receipt.fileUrl, createdAt=utcnow())
     store.data.expenses[expense.id] = expense; return expense
@@ -29,7 +29,7 @@ def update(expense_id: str, value: ExpenseUpdateInput, user=Depends(require_user
     if not old or old.deletedAt: raise HTTPException(404, "That expense could not be found.")
     group = group_or_404(old.groupId); context = access(group, user.id, write=True)
     if old.createdBy != context.memberId: raise HTTPException(403, "Only the person who added an expense can edit it.")
-    replacement = validate_expense(group, value); replacement.id = old.id; replacement.groupId = old.groupId; replacement.createdBy = old.createdBy; replacement.createdAt = old.createdAt; replacement.updatedAt = utcnow()
+    replacement = validate_expense(group, value, operation="update"); replacement.id = old.id; replacement.groupId = old.groupId; replacement.createdBy = old.createdBy; replacement.createdAt = old.createdAt; replacement.updatedAt = utcnow()
     if value.receipt:
         replacement.receipt = Receipt(id=old.receipt.id if old.receipt else new_id("rcp"), expenseId=old.id, fileName=value.receipt.fileName, fileUrl=value.receipt.fileUrl, createdAt=old.receipt.createdAt if old.receipt else utcnow())
     elif "receipt" not in value.model_fields_set:

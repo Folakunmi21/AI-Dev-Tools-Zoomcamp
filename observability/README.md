@@ -31,6 +31,11 @@ visible in Collector logs.
 The current backend emits HTTP traces. Metrics and logs will appear once the
 application or another telemetry source sends those signals to OTLP.
 
+The backend includes `deployment.environment.name` and `service.version` on
+telemetry. Set `APP_ENV` and `APP_VERSION` (or the corresponding
+`OTEL_SERVICE_VERSION`) in the deployed application environment so Grafana
+can filter panels by environment and deployed version.
+
 To use a fixed Collector version, set `OTEL_COLLECTOR_VERSION`, for example:
 
 ```powershell

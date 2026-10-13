@@ -5,9 +5,13 @@ import os
 
 from fastapi import FastAPI
 from opentelemetry import trace
+from opentelemetry import metrics
+from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
@@ -37,6 +41,23 @@ def _resource() -> Resource:
     )
 
 
+def _otlp_endpoint(signal: str) -> str | None:
+    """Resolve a signal endpoint from signal-specific or shared OTLP config."""
+    specific = os.getenv(f"OTEL_EXPORTER_OTLP_{signal.upper()}_ENDPOINT")
+    if specific:
+        return specific
+    shared = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    if not shared:
+        return None
+    shared = shared.rstrip("/")
+    for known_signal in ("traces", "metrics", "logs"):
+        suffix = f"/v1/{known_signal}"
+        if shared.endswith(suffix):
+            shared = shared[: -len(suffix)]
+            break
+    return f"{shared}/v1/{signal}"
+
+
 def configure_telemetry(app: FastAPI) -> TracerProvider:
     """Configure tracing and instrument the FastAPI application.
 
@@ -45,13 +66,19 @@ def configure_telemetry(app: FastAPI) -> TracerProvider:
     development and tests self-contained.
     """
     provider = TracerProvider(resource=_resource())
-    endpoint = os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") or os.getenv(
-        "OTEL_EXPORTER_OTLP_ENDPOINT"
-    )
+    endpoint = _otlp_endpoint("traces")
     if endpoint and os.getenv("OTEL_TRACES_EXPORTER", "otlp").lower() != "none":
         exporter = OTLPSpanExporter(endpoint=endpoint)
         provider.add_span_processor(BatchSpanProcessor(exporter))
 
     trace.set_tracer_provider(provider)
+    metric_provider = MeterProvider(resource=_resource())
+    metrics_endpoint = _otlp_endpoint("metrics")
+    if metrics_endpoint and os.getenv("OTEL_METRICS_EXPORTER", "otlp").lower() != "none":
+        metric_exporter = OTLPMetricExporter(endpoint=metrics_endpoint)
+        metric_provider.add_metric_reader(
+            PeriodicExportingMetricReader(metric_exporter, export_interval_millis=10_000)
+        )
+    metrics.set_meter_provider(metric_provider)
     FastAPIInstrumentor.instrument_app(app, tracer_provider=provider)
     return provider

@@ -5,6 +5,7 @@ from datetime import date
 from fastapi import HTTPException
 
 from ..models import *
+from ..metrics import record_balance_reconciliation, record_expense_split, record_payer_scenario
 from ..store import store, new_id, utcnow
 
 
@@ -56,7 +57,7 @@ def participant_amounts(total: int, method: str, participants: list[ExpenseParti
     return amounts
 
 
-def validate_expense(group: Group, value: ExpenseInput | ExpenseUpdateInput) -> Expense:
+def validate_expense(group: Group, value: ExpenseInput | ExpenseUpdateInput, operation: str = "unknown") -> Expense:
     group_members = {m.id for m in members(group.id)}
     if not value.description.strip(): raise HTTPException(422, "Give the expense a description.")
     if value.totalAmount <= 0: raise HTTPException(422, "Amount must be greater than zero.")
@@ -65,6 +66,10 @@ def validate_expense(group: Group, value: ExpenseInput | ExpenseUpdateInput) -> 
     if sum(p.amount for p in value.payers) != value.totalAmount or any(p.amount <= 0 for p in value.payers): raise HTTPException(422, "Payer contributions must add up to the expense total.")
     if len({p.memberId for p in value.payers}) != len(value.payers) or len({p.memberId for p in value.participants}) != len(value.participants): raise HTTPException(422, "A person can only be listed once.")
     amounts = participant_amounts(value.totalAmount, value.splitMethod, value.participants)
+    record_expense_split(total=value.totalAmount, allocations=amounts, split_method=value.splitMethod, operation=operation)
+    record_payer_scenario(len(value.payers))
+    if sum(amounts) != value.totalAmount:
+        raise HTTPException(500, "Expense shares do not add up to the expense total.")
     return Expense(id=new_id("exp"), groupId=group.id, createdBy="", description=value.description.strip(), totalAmount=value.totalAmount, currency=group.currency, expenseDate=value.expenseDate, splitMethod=value.splitMethod, payers=[ExpensePayer(**p.model_dump()) for p in value.payers], participants=[ExpenseParticipant(memberId=p.memberId, allocationValue=p.allocationValue, calculatedAmount=amounts[i]) for i, p in enumerate(value.participants)], receipt=None, createdAt=utcnow(), updatedAt=utcnow(), deletedAt=None)
 
 
@@ -103,7 +108,16 @@ def balances(group: Group) -> GroupBalances:
             outstandingAmount=gross - paid_amount,
             edges=[DebtEdge(fromMemberId=source, toMemberId=target, amount=gross, expenseId="combined", expenseDescription="Combined group balance", expenseDate=source_date)],
         ))
-    return GroupBalances(groupId=group.id, currency=group.currency, members=[MemberBalance(memberId=m.id, displayName=m.displayName, totalPaid=paid[m.id], totalShare=share[m.id], netBalance=paid[m.id]-share[m.id]) for m in ms], debts=pairs)
+    member_balances = [MemberBalance(memberId=m.id, displayName=m.displayName, totalPaid=paid[m.id], totalShare=share[m.id], netBalance=paid[m.id]-share[m.id]) for m in ms]
+    valid = sum(p.totalPaid for p in member_balances) == sum(p.totalShare for p in member_balances) and all(p.netBalance == p.totalPaid - p.totalShare for p in member_balances)
+    valid = valid and all(
+        debt.outstandingAmount == debt.grossAmount - debt.settledAmount
+        and 0 <= debt.settledAmount <= debt.grossAmount
+        for debt in pairs
+    )
+    payer_scenario = "multiple" if any(len(e.payers) > 1 for e in expenses) else "single" if expenses else "none"
+    record_balance_reconciliation(valid=valid, has_settlements=bool(settled), payer_scenario=payer_scenario)
+    return GroupBalances(groupId=group.id, currency=group.currency, members=member_balances, debts=pairs)
 
 
 def summary(group: Group, user_id: str | None) -> GroupSummary:

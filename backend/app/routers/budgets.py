@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from ..auth import require_user
+from ..metrics import record_personal_budget_created
 from ..models import BudgetItem, CreateBudgetInput, CreateBudgetItemInput, PersonalBudget, UpdateBudgetItemInput
 from ..store import new_id, store, utcnow
 
@@ -32,6 +33,7 @@ def create_budget(value: CreateBudgetInput, user=Depends(require_user)):
         raise HTTPException(422, "Give the budget a name.")
     budget = PersonalBudget(id=new_id("bud"), userId=user.id, name=value.name.strip(), currency=value.currency, totalAmount=0, paidAmount=0, remainingAmount=0, items=[])
     store.data.budgets[budget.id] = budget
+    record_personal_budget_created()
     return budget
 
 

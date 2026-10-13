@@ -2,6 +2,7 @@ import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from ..auth import current_user, require_user, public_user
+from ..metrics import record_group_created, record_quick_split
 from ..models import *
 from ..store import store, new_id, utcnow
 from .common import access, add_activity, balances, group_or_404, members, summary, user_member
@@ -39,6 +40,7 @@ def create_group(value: CreateGroupInput, user=Depends(require_user)):
         if name.strip():
             m = GroupMember(id=new_id("mbr"), groupId=g.id, userId=None, displayName=name.strip(), role="member", joinedAt=t); store.data.members[m.id] = m
     add_activity(g, admin, "group_created", "group", g.id, f"{admin.displayName} created the group")
+    record_group_created()
     return g
 
 
@@ -63,10 +65,13 @@ def update_group(group_id: str, value: UpdateGroupInput, user=Depends(require_us
 @router.post("/quick-splits", response_model=Group, status_code=201)
 def quick_split(value: CreateQuickSplitInput, user=Depends(current_user)):
     names = [n.strip() for n in value.memberNames if n.strip()]
-    if len(names) < 2 or len({n.lower() for n in names}) != len(names): raise HTTPException(422, "Add at least two different people.")
+    if len(names) < 2 or len({n.lower() for n in names}) != len(names):
+        record_quick_split("rejected")
+        raise HTTPException(422, "Add at least two different people.")
     t = utcnow(); g = Group(id=new_id("qsp"), kind="quick", name=value.name or f"Quick Split - {t:%d %b}", description="", ownerId=uid(user), currency="NGN", inviteToken=None, createdAt=t, updatedAt=t); store.data.groups[g.id] = g
     for i, name in enumerate(names):
         m = GroupMember(id=new_id("mbr"), groupId=g.id, userId=uid(user) if i == 0 else None, displayName=name, role="admin" if i == 0 else "member", joinedAt=t); store.data.members[m.id] = m
+    record_quick_split("success")
     return g
 
 
