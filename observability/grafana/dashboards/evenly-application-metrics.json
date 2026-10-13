@@ -1,0 +1,125 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "sum(evenly_groups_created_total{deployment_environment_name=~\"$environment\",service_version=~\"$version\"})", "refId": "A"}],
+      "title": "Groups created",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 0},
+      "id": 2,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "sum(evenly_quick_splits_created_total{deployment_environment_name=~\"$environment\",service_version=~\"$version\"})", "refId": "A"}],
+      "title": "Quick splits created",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 0},
+      "id": 3,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "100 * sum(rate(evenly_quick_splits_operations_total{outcome=\"success\",deployment_environment_name=~\"$environment\",service_version=~\"$version\"}[5m])) / clamp_min(sum(rate(evenly_quick_splits_operations_total{deployment_environment_name=~\"$environment\",service_version=~\"$version\"}[5m])), 0.000001)", "refId": "A"}],
+      "title": "Quick split success rate",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
+      "id": 4,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "100 * sum(rate(evenly_expense_splits_validations_total{outcome=\"valid\",deployment_environment_name=~\"$environment\",service_version=~\"$version\"}[5m])) / clamp_min(sum(rate(evenly_expense_splits_validations_total{deployment_environment_name=~\"$environment\",service_version=~\"$version\"}[5m])), 0.000001)", "refId": "A"}],
+      "title": "Expense split accuracy",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "id": 5,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum by (payer_scenario) (rate(evenly_expenses_payer_scenarios_total{deployment_environment_name=~\"$environment\",service_version=~\"$version\"}[5m]))", "legendFormat": "{{payer_scenario}} payer", "refId": "A"}],
+      "title": "Expense payer scenarios",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+      "id": 6,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "100 * sum by (payer_scenario) (rate(evenly_balances_reconciliations_total{outcome=\"valid\",deployment_environment_name=~\"$environment\",service_version=~\"$version\"}[5m])) / clamp_min(sum by (payer_scenario) (rate(evenly_balances_reconciliations_total{deployment_environment_name=~\"$environment\",service_version=~\"$version\"}[5m])), 0.000001)", "legendFormat": "{{payer_scenario}} payer", "refId": "A"}],
+      "title": "Balance reconciliation success",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 13},
+      "id": 7,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum by (split_method, outcome) (rate(evenly_expense_splits_validations_total{deployment_environment_name=~\"$environment\",service_version=~\"$version\"}[5m]))", "legendFormat": "{{split_method}} - {{outcome}}", "refId": "A"}],
+      "title": "Expense split validations",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 13},
+      "id": 8,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum(evenly_personal_budgets_created_total{deployment_environment_name=~\"$environment\",service_version=~\"$version\"})", "legendFormat": "budgets", "refId": "A"}],
+      "title": "Personal budgets created",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["evenly", "application", "otel"],
+  "templating": {
+    "list": [
+      {
+        "current": {"text": "All", "value": ["$__all"]},
+        "includeAll": true,
+        "label": "Environment",
+        "multi": true,
+        "name": "environment",
+        "query": "label_values(evenly_groups_created_total, deployment_environment_name)",
+        "refresh": 2,
+        "type": "query",
+        "allValue": ".*"
+      },
+      {
+        "current": {"text": "All", "value": ["$__all"]},
+        "includeAll": true,
+        "label": "Deployed version",
+        "multi": true,
+        "name": "version",
+        "query": "label_values(evenly_groups_created_total, service_version)",
+        "refresh": 2,
+        "type": "query",
+        "allValue": ".*"
+      }
+    ]
+  },
+  "time": {"from": "now-6h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Evenly Application Metrics",
+  "uid": "evenly-application-metrics",
+  "version": 1
+}

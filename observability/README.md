@@ -24,6 +24,10 @@ The stack stores and displays telemetry through:
 - Loki: `http://localhost:3100`
 - Tempo: `http://localhost:3200`
 
+Grafana provisions the **Evenly Application Metrics** dashboard at
+`http://localhost:3000/d/evenly-application-metrics/evenly-application-metrics`.
+The dashboard includes filters for `Environment` and `Deployed version`.
+
 The Collector exports traces to Tempo, metrics to Prometheus, and logs to
 Loki. It also keeps the `debug` exporter enabled so received telemetry is
 visible in Collector logs.
