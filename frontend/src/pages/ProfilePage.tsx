@@ -27,6 +27,13 @@ export function ProfilePage() {
   return user ? <AccountPanel /> : <AuthPanel />
 }
 
+function registrationError(name: string, email: string, password: string): string | null {
+  if (!name.trim()) return 'Enter your name.'
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) return 'Enter a valid email address.'
+  if (password.length < 8) return 'Use a password of at least 8 characters.'
+  return null
+}
+
 function AccountPanel() {
   const { user } = useSession()
   const navigate = useNavigate()
@@ -81,6 +88,7 @@ function AuthPanel() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [validationMessage, setValidationMessage] = useState<string | null>(null)
 
   const login = useMutation((service) => service.auth.login({ email, password }))
   const register = useMutation((service) => service.auth.register({ name, email, password }))
@@ -100,6 +108,14 @@ function AuthPanel() {
           className="stack"
           onSubmit={async (event) => {
             event.preventDefault()
+            setValidationMessage(null)
+            if (mode === 'register') {
+              const message = registrationError(name, email, password)
+              if (message) {
+                setValidationMessage(message)
+                return
+              }
+            }
             const result = await active.mutate()
             if (result.ok) navigate('/')
           }}
@@ -141,7 +157,7 @@ function AuthPanel() {
             {mode === 'register' && <span className="field-hint">At least 8 characters.</span>}
           </label>
 
-          <ErrorNotice error={active.error} />
+          <ErrorNotice error={validationMessage ? new Error(validationMessage) : active.error} />
 
           <div className="form-actions">
             <button

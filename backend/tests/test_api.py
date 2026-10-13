@@ -43,6 +43,18 @@ def test_health_checks_database(client):
     assert response.json() == {"status": "ok", "database": "ok"}
 
 
+def test_registration_returns_a_specific_password_validation_message(client):
+    response = client.post(
+        "/api/auth/register",
+        json={"name": "New User", "email": "new@example.com", "password": "short"},
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "Use a password of at least 8 characters.",
+    }
+
+
 def test_passwords_are_hashed_and_protected_routes_require_bearer(client):
     assert store.data.users["usr_ada"].passwordHash != "password"
     assert client.post("/api/groups", json={"name": "Nope"}).status_code == 401

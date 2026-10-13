@@ -27,7 +27,9 @@ class Session(BaseModel):
 class RegisterInput(BaseModel):
     name: str
     email: str
-    password: str = Field(min_length=8)
+    # Registration rules are applied in auth.validate_registration so the API
+    # can return the same user-facing message for all invalid signup inputs.
+    password: str
 
 
 class LoginInput(BaseModel):
