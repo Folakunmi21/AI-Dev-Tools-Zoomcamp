@@ -172,10 +172,11 @@ jobs:
         run: |
           test -n "$RENDER_API_KEY"
           test -n "$RENDER_SERVICE_ID"
-          response=$(curl --fail --silent --show-error \
+          response=$(curl --fail-with-body --silent --show-error \
             --request POST \
             --url "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" \
             --header "Authorization: Bearer ${RENDER_API_KEY}" \
+            --header "Accept: application/json" \
             --header "Content-Type: application/json" \
             --data "$(jq -n --arg image "$IMAGE_REF" '{imageUrl: $image}')")
           deploy_id=$(jq -r '.id // empty' <<< "$response")
@@ -187,9 +188,10 @@ jobs:
         shell: bash
         run: |
           for attempt in $(seq 1 90); do
-            response=$(curl --fail --silent --show-error \
+            response=$(curl --fail-with-body --silent --show-error \
               --url "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys/${deploy_id}" \
-              --header "Authorization: Bearer ${RENDER_API_KEY}")
+              --header "Authorization: Bearer ${RENDER_API_KEY}" \
+              --header "Accept: application/json")
             status=$(jq -r '.status' <<< "$response")
             echo "Render development deployment status: $status"
             case "$status" in
