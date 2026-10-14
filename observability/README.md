@@ -37,8 +37,24 @@ application or another telemetry source sends those signals to OTLP.
 
 The backend includes `deployment.environment.name` and `service.version` on
 telemetry. Set `APP_ENV` and `APP_VERSION` (or the corresponding
-`OTEL_SERVICE_VERSION`) in the deployed application environment so Grafana
-can filter panels by environment and deployed version.
+`OTEL_SERVICE_VERSION`) in each deployed application environment so Grafana
+can filter panels by environment and deployed version. The development and
+production applications must each set
+`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` to an externally reachable Collector
+endpoint ending in `/v1/metrics`; set the traces endpoint similarly if traces
+are desired. The local Collector's `localhost` address is only suitable for a
+backend running on the same host. Render services cannot reach it.
+
+For the root Docker Compose application, set this in the root `.env` file:
+
+```powershell
+OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:4318
+OTEL_SERVICE_VERSION=local
+```
+
+Then restart the application stack after starting this observability stack.
+The Grafana environment filter will contain `development` or `production`
+only after that environment has sent at least one metric sample.
 
 To use a fixed Collector version, set `OTEL_COLLECTOR_VERSION`, for example:
 

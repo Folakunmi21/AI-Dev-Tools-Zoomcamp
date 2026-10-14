@@ -31,6 +31,12 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
       RECEIPT_STORAGE_DIR: /data/receipts
+      # Set these in .env when the separate observability project is running.
+      # host.docker.internal reaches the host from Docker Desktop containers.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: ${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:-}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION:-${APP_VERSION:-}}
     ports:
       - "${APP_HOST_PORT:-8000}:8000"
     volumes:

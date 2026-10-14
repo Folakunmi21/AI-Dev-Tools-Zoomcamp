@@ -231,3 +231,22 @@ Keep the development and production service IDs, URLs, databases, and Render
 environment variables separate. `GITHUB_TOKEN` is provided automatically by
 GitHub Actions and needs package write access for the build job and package
 read access for the promotion job.
+
+### Observability environment variables
+
+Both Render services can export metrics to the Grafana stack, but each service
+must be configured with an externally reachable OpenTelemetry Collector. In
+the Render environment settings, configure these variables independently on
+the development and production services:
+
+```text
+OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=https://<collector-host>/v1/metrics
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://<collector-host>/v1/traces
+OTEL_SERVICE_VERSION=<deployed-image-version>
+```
+
+Keep `APP_ENV=development` on `dev-evenly-fdcm` and `APP_ENV=production` on
+`evenly-fdcm`. The local Collector under `observability/` cannot receive
+telemetry from Render unless it is exposed through a secure public endpoint.
+The Grafana dashboard reports aggregate application metrics; it does not
+store or display individual account or group records.
