@@ -64,6 +64,7 @@ export interface BudgetService {
   list(): Promise<PersonalBudget[]>
   get(budgetId: Id): Promise<PersonalBudget>
   create(input: { name: string; currency?: CurrencyCode }): Promise<PersonalBudget>
+  delete(budgetId: Id): Promise<void>
   addItem(budgetId: Id, input: { name: string; amount: Kobo }): Promise<PersonalBudget>
   updateItem(
     budgetId: Id,
@@ -213,6 +214,7 @@ export interface GroupService {
   create(input: CreateGroupInput): Promise<Group>
   get(groupId: Id): Promise<GroupDetail>
   update(groupId: Id, input: UpdateGroupInput): Promise<Group>
+  delete(groupId: Id): Promise<void>
 
   createQuickSplit(input: CreateQuickSplitInput): Promise<Group>
   /** Attach a guest's quick split to the signed-in account so it syncs. */

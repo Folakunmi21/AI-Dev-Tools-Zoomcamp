@@ -198,6 +198,7 @@ export function ExpenseForm({ group, members, expense, defaultPayerId, onSaved, 
       <div className="grid-2">
         <Field label="Date">
           <input
+            className="date-input"
             type="date"
             value={expenseDate}
             onChange={(event) => setExpenseDate(event.target.value)}

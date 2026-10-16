@@ -114,6 +114,15 @@ class EntityCollection:
         self._values_cache[cache_key] = values
         return values
 
+    def delete_where(self, payload_filters: dict[str, str]) -> None:
+        """Mark all persisted records matching the supplied payload fields deleted."""
+        statement = select(EntityRow).where(EntityRow.kind == self.kind)
+        for field, value in payload_filters.items():
+            statement = statement.where(EntityRow.payload[field].as_string() == value)
+        for row in self.unit_of_work.session.scalars(statement).all():
+            self.deleted.add(row.id)
+        self._values_cache.clear()
+
     def __iter__(self):
         return iter(self.values())
 

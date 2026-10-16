@@ -112,6 +112,7 @@ export function createHttpService(options: HttpServiceOptions): EvenlyService {
       list: () => get('/budgets'),
       get: (budgetId) => get(budget(budgetId)),
       create: (input) => post('/budgets', input),
+      delete: (budgetId) => del(budget(budgetId)),
       addItem: (budgetId, input) => post(`${budget(budgetId)}/items`, input),
       updateItem: (budgetId, itemId, input) =>
         patch(`${budget(budgetId)}/items/${encodeURIComponent(itemId)}`, input),
@@ -123,6 +124,7 @@ export function createHttpService(options: HttpServiceOptions): EvenlyService {
       create: (input) => post('/groups', input),
       get: (groupId) => get(group(groupId)),
       update: (groupId, input) => patch(group(groupId), input),
+      delete: (groupId) => del(group(groupId)),
       createQuickSplit: (input) => post('/quick-splits', input),
       saveQuickSplit: (groupId) => post(`${group(groupId)}/save`),
       addMember: (groupId, displayName) => post(`${group(groupId)}/members`, { displayName }),

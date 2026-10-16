@@ -483,6 +483,13 @@ export function createMockService(options: MockServiceOptions = {}): EvenlyServi
           if (budget.items.length === before) throw notFound('That budget expense')
           return budgetTotals(budget)
         }),
+      delete: (budgetId) =>
+        transaction<void>(() => {
+          const user = requireUser()
+          const index = db.budgets.findIndex((budget) => budget.id === budgetId && budget.userId === user.id)
+          if (index < 0) throw notFound('That personal budget')
+          db.budgets.splice(index, 1)
+        }),
     },
 
     groups: {
@@ -586,6 +593,20 @@ export function createMockService(options: MockServiceOptions = {}): EvenlyServi
 
           recordActivity(group, actor, 'group_updated', 'group', group.id, `${actor?.displayName ?? 'Someone'} updated the group details`)
           return group
+        }),
+
+      delete: (groupId) =>
+        transaction<void>(() => {
+          const user = requireUser()
+          const group = getGroup(groupId)
+          if (group.kind !== 'group') throw new ServiceError('conflict', 'Quick Splits cannot be deleted as saved groups.')
+          if (group.ownerId !== user.id) throw forbidden('Only the group owner can delete this group.')
+          db.groups = db.groups.filter((candidate) => candidate.id !== groupId)
+          db.members = db.members.filter((member) => member.groupId !== groupId)
+          db.expenses = db.expenses.filter((expense) => expense.groupId !== groupId)
+          db.settlements = db.settlements.filter((settlement) => settlement.groupId !== groupId)
+          db.activities = db.activities.filter((activity) => activity.groupId !== groupId)
+          db.notifications = db.notifications.filter((notification) => notification.groupId !== groupId)
         }),
 
       createQuickSplit: (input: CreateQuickSplitInput) =>

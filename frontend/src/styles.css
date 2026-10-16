@@ -122,6 +122,8 @@ h3 { margin: 1.25rem 0 .75rem; font-size: 1rem; }
 .password-toggle svg { display: block; width: 1.15rem; height: 1.15rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 input, textarea, select { width: 100%; padding: .72rem .8rem; border: 1px solid #d4dbe8; border-radius: 9px; outline: none; color: var(--ink); background: #fff; transition: border .2s, box-shadow .2s; }
 input:focus, textarea:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px #3155d91a; }
+input.date-input { min-width: 0; padding-right: .45rem; }
+input.date-input::-webkit-calendar-picker-indicator { width: 1rem; height: 1rem; margin: 0; padding: 0; }
 .button, button { border: 0; border-radius: 9px; padding: .7rem 1rem; font-weight: 700; transition: transform .15s, background .2s, box-shadow .2s; }
 .button:hover, button:not(:disabled):hover { transform: translateY(-1px); }
 .primary { color: #fff; background: var(--blue); box-shadow: 0 6px 14px #3155d932; }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ActivityList } from '../components/ActivityList'
 import { BalancesPanel } from '../components/BalancesPanel'
 import { ExpenseForm } from '../components/ExpenseForm'
@@ -17,6 +17,7 @@ type Tab = (typeof TABS)[number]
 
 export function GroupPage() {
   const { groupId = '' } = useParams()
+  const navigate = useNavigate()
   const { user } = useSession()
   const [tab, setTab] = useState<Tab>('Overview')
   const [addingExpense, setAddingExpense] = useState(false)
@@ -28,6 +29,7 @@ export function GroupPage() {
   )
 
   const saveQuickSplit = useMutation((service) => service.groups.saveQuickSplit(groupId))
+  const deleteGroup = useMutation((service) => service.groups.delete(groupId))
 
   if (loading) return <Loading label="Loading group…" />
   if (error) {
@@ -75,8 +77,24 @@ export function GroupPage() {
               Edit details
             </button>
           )}
+          {viewer.isAdmin && !isQuick && (
+            <button
+              type="button"
+              className="link danger"
+              disabled={deleteGroup.pending}
+              onClick={async () => {
+                if (!window.confirm(`Delete “${group.name}” and all of its expenses? This cannot be undone.`)) return
+                const result = await deleteGroup.mutate()
+                if (result.ok) navigate('/groups')
+              }}
+            >
+              {deleteGroup.pending ? 'Deleting…' : 'Delete group'}
+            </button>
+          )}
         </div>
       </header>
+
+      <ErrorNotice error={deleteGroup.error} />
 
       {isQuick && (
         <div className="notice info">

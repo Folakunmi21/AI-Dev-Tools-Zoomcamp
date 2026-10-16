@@ -240,13 +240,19 @@ the Render environment settings, configure these variables independently on
 the development and production services:
 
 ```text
+OTEL_EXPORTER_OTLP_ENDPOINT=https://<collector-host>
 OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=https://<collector-host>/v1/metrics
 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://<collector-host>/v1/traces
+OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=https://<collector-host>/v1/logs
 OTEL_SERVICE_VERSION=<deployed-image-version>
 ```
 
 Keep `APP_ENV=development` on `dev-evenly-fdcm` and `APP_ENV=production` on
 `evenly-fdcm`. The local Collector under `observability/` cannot receive
 telemetry from Render unless it is exposed through a secure public endpoint.
+Set all four OTLP endpoint variables and `OTEL_SERVICE_VERSION` on both Render
+services. They may share one externally reachable Collector; `APP_ENV` keeps
+development and production series separate. The Render blueprint declares
+these values as `sync: false` so Collector URLs and credentials stay out of git.
 The Grafana dashboard reports aggregate application metrics; it does not
 store or display individual account or group records.

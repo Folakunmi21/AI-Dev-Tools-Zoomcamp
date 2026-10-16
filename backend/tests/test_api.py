@@ -185,3 +185,27 @@ def test_personal_budget_recalculates_when_items_are_paid(client):
     assert paid.status_code == 200
     assert paid.json()["paidAmount"] == 100000
     assert paid.json()["remainingAmount"] == 15000
+
+
+def test_group_owner_can_delete_group_and_related_records(client):
+    token = login(client)
+    headers = auth(token)
+    created = client.post("/api/groups", headers=headers, json={"name": "Temporary group"})
+    assert created.status_code == 201
+    group_id = created.json()["id"]
+
+    deleted = client.delete(f"/api/groups/{group_id}", headers=headers)
+    assert deleted.status_code == 204
+    assert client.get(f"/api/groups/{group_id}", headers=headers).status_code == 404
+
+
+def test_budget_owner_can_delete_budget(client):
+    token = login(client)
+    headers = auth(token)
+    created = client.post("/api/budgets", headers=headers, json={"name": "Temporary budget"})
+    assert created.status_code == 201
+    budget_id = created.json()["id"]
+
+    deleted = client.delete(f"/api/budgets/{budget_id}", headers=headers)
+    assert deleted.status_code == 204
+    assert client.get(f"/api/budgets/{budget_id}", headers=headers).status_code == 404

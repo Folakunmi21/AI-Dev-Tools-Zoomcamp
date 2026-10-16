@@ -51,6 +51,18 @@ def get_group(group_id: str, user=Depends(current_user)):
     return GroupDetail(group=g, members=members(g.id), expenses=expenses, balances=balances(g), settlements=sorted(store.data.settlements.values(payload_filters={"groupId": g.id}), key=lambda s: s.paidAt, reverse=True), activities=sorted(store.data.activities.values(payload_filters={"groupId": g.id}), key=lambda a: a.createdAt, reverse=True), viewer=viewer)
 
 
+@router.delete("/groups/{group_id}", status_code=204)
+def delete_group(group_id: str, user=Depends(require_user)):
+    g = group_or_404(group_id)
+    if g.kind != "group":
+        raise HTTPException(409, "Quick Splits cannot be deleted as saved groups.")
+    if g.ownerId != user.id:
+        raise HTTPException(403, "Only the group owner can delete this group.")
+    for collection in (store.data.members, store.data.expenses, store.data.settlements, store.data.activities, store.data.notifications):
+        collection.delete_where({"groupId": g.id})
+    del store.data.groups[g.id]
+
+
 @router.patch("/groups/{group_id}", response_model=Group)
 def update_group(group_id: str, value: UpdateGroupInput, user=Depends(require_user)):
     g = group_or_404(group_id); viewer = access(g, user.id)

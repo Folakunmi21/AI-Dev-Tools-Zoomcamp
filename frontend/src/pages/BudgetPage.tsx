@@ -1,17 +1,19 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Card, EmptyState, ErrorNotice, Loading } from '../components/ui'
 import { formatMoney, parseAmount } from '../domain/money'
 import { useMutation, useQuery } from '../hooks/useQuery'
 
 export function BudgetPage() {
   const { budgetId = '' } = useParams()
+  const navigate = useNavigate()
   const { data, loading, error, reload } = useQuery((service) => service.budgets.get(budgetId), [budgetId])
   const [expenseName, setExpenseName] = useState('')
   const [amount, setAmount] = useState('')
   const addItem = useMutation((service) => service.budgets.addItem(budgetId, { name: expenseName, amount: parseAmount(amount) ?? 0 }))
   const updateItem = useMutation((service, itemId: string, isPaid: boolean) => service.budgets.updateItem(budgetId, itemId, { isPaid }))
   const removeItem = useMutation((service, itemId: string) => service.budgets.removeItem(budgetId, itemId))
+  const deleteBudget = useMutation((service) => service.budgets.delete(budgetId))
 
   if (loading) return <Loading label="Loading budget…" />
   if (error) return <div className="stack"><ErrorNotice error={error} onRetry={reload} /><Link to="/budgets" className="link">Back to budgets</Link></div>
@@ -22,7 +24,20 @@ export function BudgetPage() {
       <Link to="/budgets" className="link">← Personal budgets</Link>
       <header className="group-header">
         <div><p className="muted small">Personal budget</p><h1>{data.name}</h1></div>
+        <button
+          type="button"
+          className="link danger"
+          disabled={deleteBudget.pending}
+          onClick={async () => {
+            if (!window.confirm(`Delete “${data.name}” and all of its expenses? This cannot be undone.`)) return
+            const result = await deleteBudget.mutate()
+            if (result.ok) navigate('/budgets')
+          }}
+        >
+          {deleteBudget.pending ? 'Deleting…' : 'Delete budget'}
+        </button>
       </header>
+      <ErrorNotice error={deleteBudget.error} />
 
       <Card>
         <div className="totals">

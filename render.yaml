@@ -11,11 +11,15 @@ services:
         value: production
       - key: DATABASE_URL
         sync: false
-      # Configure these to an externally reachable OTLP Collector. A Collector
-      # running on a developer laptop cannot receive telemetry from Render.
+      # Configure these to the same externally reachable OTLP Collector used by
+      # the development service. A laptop Collector cannot receive Render data.
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        sync: false
       - key: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
         sync: false
       - key: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+        sync: false
+      - key: OTEL_EXPORTER_OTLP_LOGS_ENDPOINT
         sync: false
       - key: OTEL_SERVICE_VERSION
         sync: false

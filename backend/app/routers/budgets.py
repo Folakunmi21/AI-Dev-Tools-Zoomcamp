@@ -42,6 +42,12 @@ def get_budget(budget_id: str, user=Depends(require_user)):
     return with_totals(owned_budget(budget_id, user))
 
 
+@router.delete("/{budget_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_budget(budget_id: str, user=Depends(require_user)):
+    budget = owned_budget(budget_id, user)
+    del store.data.budgets[budget.id]
+
+
 @router.post("/{budget_id}/items", response_model=PersonalBudget, status_code=status.HTTP_201_CREATED)
 def add_item(budget_id: str, value: CreateBudgetItemInput, user=Depends(require_user)):
     budget = owned_budget(budget_id, user)
