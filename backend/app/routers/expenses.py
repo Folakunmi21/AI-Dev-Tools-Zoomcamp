@@ -1,19 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException
-from ..auth import require_user
+from ..auth import current_user, require_user
 from ..models import Expense, ExpenseInput, ExpenseUpdateInput, Receipt
 from ..store import store, new_id, utcnow
-from .common import access, group_or_404, members, validate_expense, user_member
+from .common import access, add_activity, group_or_404, members, validate_expense, user_member
 
 router = APIRouter(tags=["Expenses"])
 
 
 @router.post("/expenses", response_model=Expense, status_code=201)
-def create(value: ExpenseInput, user=Depends(require_user)):
-    group = group_or_404(value.groupId); context = access(group, user.id, write=True)
+def create(value: ExpenseInput, user=Depends(current_user)):
+    group = group_or_404(value.groupId)
+    context = access(group, user.id if user else None, write=True)
     expense = validate_expense(group, value, operation="create"); expense.createdBy = context.memberId
     if value.receipt:
         expense.receipt = Receipt(id=new_id("rcp"), expenseId=expense.id, fileName=value.receipt.fileName, fileUrl=value.receipt.fileUrl, createdAt=utcnow())
-    store.data.expenses[expense.id] = expense; return expense
+    store.data.expenses[expense.id] = expense
+    actor = next((member for member in members(group.id) if member.id == context.memberId), None)
+    add_activity(group, actor, "expense_created", "expense", expense.id, f"{actor.displayName if actor else 'Someone'} added {expense.description}")
+    return expense
 
 
 @router.get("/expenses/{expense_id}", response_model=Expense)

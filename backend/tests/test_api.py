@@ -92,6 +92,30 @@ def test_guest_quick_split_invite_preview_and_upload(client):
     assert stored.content == b"png"
 
 
+def test_guest_can_add_expense_to_quick_split(client):
+    quick = client.post("/api/quick-splits", json={"memberNames": ["Guest", "Friend"]})
+    assert quick.status_code == 201
+    group_id = quick.json()["id"]
+    detail = client.get(f"/api/groups/{group_id}")
+    assert detail.status_code == 200
+    member_ids = [member["id"] for member in detail.json()["members"]]
+
+    expense = client.post(
+        "/api/expenses",
+        json={
+            "groupId": group_id,
+            "description": "Lunch",
+            "totalAmount": 1000,
+            "expenseDate": "2026-10-16",
+            "splitMethod": "equal",
+            "payers": [{"memberId": member_ids[0], "amount": 1000}],
+            "participants": [{"memberId": member_ids[0]}, {"memberId": member_ids[1]}],
+        },
+    )
+    assert expense.status_code == 201
+    assert expense.json()["description"] == "Lunch"
+
+
 def test_new_account_can_accept_invite_after_registration(client):
     registered = client.post(
         "/api/auth/register",
