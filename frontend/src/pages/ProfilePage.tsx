@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Card, ErrorNotice } from '../components/ui'
 import { useMutation } from '../hooks/useQuery'
 import { useSession } from '../state/session-context'
@@ -83,6 +83,7 @@ function AccountPanel() {
 
 function AuthPanel() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -117,7 +118,10 @@ function AuthPanel() {
               }
             }
             const result = await active.mutate()
-            if (result.ok) navigate('/')
+            if (result.ok) {
+              const invite = new URLSearchParams(location.search).get('invite')
+              navigate(invite ? `/join/${encodeURIComponent(invite)}` : '/')
+            }
           }}
         >
           {mode === 'register' && (

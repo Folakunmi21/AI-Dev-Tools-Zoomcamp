@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from ..metrics import record_activity
 from datetime import date
 from fastapi import HTTPException
 
@@ -133,3 +134,4 @@ def summary(group: Group, user_id: str | None) -> GroupSummary:
 
 def add_activity(group: Group, actor: GroupMember | None, action: str, entity_type: str, entity_id: str | None, summary_text: str):
     store.data.activities[new_id("act")] = Activity(id=new_id("act"), groupId=group.id, actorId=actor.id if actor else None, actorName=actor.displayName if actor else "Someone", action=action, entityType=entity_type, entityId=entity_id, summary=summary_text, createdAt=utcnow())
+    record_activity(action)

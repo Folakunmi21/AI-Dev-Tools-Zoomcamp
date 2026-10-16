@@ -14,6 +14,7 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from .metrics import app_info
 
 
 SERVICE_NAME = "evenly-backend"
@@ -80,5 +81,6 @@ def configure_telemetry(app: FastAPI) -> TracerProvider:
             PeriodicExportingMetricReader(metric_exporter, export_interval_millis=10_000)
         )
     metrics.set_meter_provider(metric_provider)
+    app_info.add(1)
     FastAPIInstrumentor.instrument_app(app, tracer_provider=provider)
     return provider

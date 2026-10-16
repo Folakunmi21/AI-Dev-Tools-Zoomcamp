@@ -92,6 +92,26 @@ def test_guest_quick_split_invite_preview_and_upload(client):
     assert stored.content == b"png"
 
 
+def test_new_account_can_accept_invite_after_registration(client):
+    registered = client.post(
+        "/api/auth/register",
+        json={"name": "New Member", "email": "new-member@example.com", "password": "password123"},
+    )
+    assert registered.status_code == 200
+    token = registered.json()["access_token"]
+
+    accepted = client.post(
+        "/api/invites/lagos-invite-demo/accept",
+        headers=auth(token),
+        json={"displayName": "New Member"},
+    )
+    assert accepted.status_code == 200
+    assert accepted.json()["userId"] == registered.json()["user"]["id"]
+
+    dashboard = client.get("/api/dashboard", headers=auth(token))
+    assert any(item["group"]["id"] == "grp_lagos" for item in dashboard.json()["groups"])
+
+
 def test_notifications_can_be_read(client):
     token = login(client)
     headers = auth(token)

@@ -1,10 +1,16 @@
 name: Promote dev to production
 
+run-name: Promote ${{ inputs.deployment_title }} to production
+
 on:
   workflow_dispatch:
     inputs:
       image_digest:
         description: Image digest currently deployed to dev-evenly-fdcm (sha256:...)
+        required: true
+        type: string
+      deployment_title:
+        description: Exact descriptive title shown for the selected development deployment
         required: true
         type: string
 
@@ -27,6 +33,7 @@ jobs:
       RENDER_SERVICE_URL: ${{ secrets.PRODUCTION_RENDER_SERVICE_URL }}
       IMAGE_NAME: ghcr.io/folakunmi21/ai-dev-tools-zoomcamp
       IMAGE_DIGEST: ${{ inputs.image_digest }}
+      DEPLOYMENT_TITLE: ${{ inputs.deployment_title }}
     steps:
       - name: Validate image digest
         run: |
@@ -150,6 +157,7 @@ jobs:
           {
             echo "### Production image"
             echo
+            echo "Deployment title: `${{ inputs.deployment_title }}`"
             echo "Digest: \`${{ inputs.image_digest }}\`"
             echo "Image: \`$IMAGE_REF\`"
           } >> "$GITHUB_STEP_SUMMARY"

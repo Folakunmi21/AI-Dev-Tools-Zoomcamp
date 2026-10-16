@@ -5,6 +5,12 @@ from opentelemetry import metrics
 
 meter = metrics.get_meter("evenly-backend")
 
+app_info = meter.create_up_down_counter(
+    "evenly.app.info",
+    unit="{service}",
+    description="One time-series identifying each Evenly service deployment.",
+)
+
 groups_created = meter.create_counter(
     "evenly.groups.created",
     unit="{group}",
@@ -44,6 +50,11 @@ personal_budgets_created = meter.create_counter(
     "evenly.personal_budgets.created",
     unit="{budget}",
     description="Number of personal budgets successfully created.",
+)
+activities_recorded = meter.create_counter(
+    "evenly.activities.recorded",
+    unit="{activity}",
+    description="User activities recorded by the application.",
 )
 
 
@@ -88,3 +99,7 @@ def record_balance_reconciliation(
 
 def record_personal_budget_created() -> None:
     personal_budgets_created.add(1)
+
+
+def record_activity(action: str) -> None:
+    activities_recorded.add(1, {"action": action})

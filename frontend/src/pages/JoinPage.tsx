@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Card, EmptyState, ErrorNotice, Loading } from '../components/ui'
 import { useMutation, useQuery } from '../hooks/useQuery'
@@ -10,12 +10,23 @@ export function JoinPage() {
   const navigate = useNavigate()
   const { user, loading: sessionLoading } = useSession()
   const [displayName, setDisplayName] = useState('')
+  const autoAcceptedToken = useRef<string | null>(null)
 
   const { data, loading, error } = useQuery(
     (service) => service.groups.previewInvite(token),
     [token],
   )
   const accept = useMutation((service) => service.groups.acceptInvite(token, displayName))
+
+  // Keep the invite flow atomic for new users: signup returns to this page,
+  // and the original invite is accepted without requiring a second click.
+  useEffect(() => {
+    if (loading || sessionLoading || !user || !data?.valid || autoAcceptedToken.current === token) return
+    autoAcceptedToken.current = token
+    void accept.mutate().then((result) => {
+      if (result.ok) navigate(`/groups/${data.groupId}`)
+    })
+  }, [accept, data, loading, navigate, sessionLoading, token, user])
 
   if (loading || sessionLoading) return <Loading label="Checking invitation…" />
 
@@ -46,6 +57,9 @@ export function JoinPage() {
 
       <Card>
         {user ? (
+          accept.pending && autoAcceptedToken.current === token ? (
+            <Loading label="Joining group…" />
+          ) : (
           <form
             className="stack"
             onSubmit={async (event) => {
@@ -70,12 +84,13 @@ export function JoinPage() {
               </button>
             </div>
           </form>
+          )
         ) : (
           <EmptyState
             title="Sign in to join"
             body="Joining a group needs an account so your balances follow you. Quick Split does not."
             action={
-              <Link to="/profile" className="button primary">
+              <Link to={`/profile?invite=${encodeURIComponent(token)}`} className="button primary">
                 Sign in or create an account
               </Link>
             }

@@ -85,6 +85,16 @@
       "targets": [{"expr": "sum(evenly_personal_budgets_created_total{deployment_environment_name=~\"$environment\",service_version=~\"$version\"})", "legendFormat": "budgets", "refId": "A"}],
       "title": "Personal budgets created",
       "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}}, "overrides": []},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 21},
+      "id": 9,
+      "options": {"legend": {"displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum by (action) (rate(evenly_activities_recorded_total{deployment_environment_name=~\"$environment\",service_version=~\"$version\"}[5m]))", "legendFormat": "{{action}}", "refId": "A"}],
+      "title": "Application activities",
+      "type": "timeseries"
     }
   ],
   "refresh": "10s",
@@ -98,7 +108,7 @@
         "label": "Environment",
         "multi": true,
         "name": "environment",
-        "query": "label_values(evenly_groups_created_total, deployment_environment_name)",
+        "query": "label_values(evenly_app_info, deployment_environment_name)",
         "refresh": 2,
         "type": "query",
         "allValue": ".*"
@@ -109,7 +119,7 @@
         "label": "Deployed version",
         "multi": true,
         "name": "version",
-        "query": "label_values(evenly_groups_created_total, service_version)",
+        "query": "label_values(evenly_app_info, service_version)",
         "refresh": 2,
         "type": "query",
         "allValue": ".*"

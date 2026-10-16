@@ -54,6 +54,7 @@ class EntityCollection:
         self.models: dict[str, object] = {}
         self.originals: dict[str, dict | None] = {}
         self.deleted: set[str] = set()
+        self._values_cache: dict[tuple[tuple[str, str], ...], list[object]] = {}
 
     def _row_model(self, row: EntityRow):
         if row.id in self.models:
@@ -85,6 +86,7 @@ class EntityCollection:
         return model
 
     def __setitem__(self, entity_id: str, model) -> None:
+        self._values_cache.clear()
         self.models[entity_id] = model
         self.originals.setdefault(entity_id, None)
         self.deleted.discard(entity_id)
@@ -93,8 +95,12 @@ class EntityCollection:
         if self.get(entity_id) is None:
             raise KeyError(entity_id)
         self.deleted.add(entity_id)
+        self._values_cache.clear()
 
     def values(self, payload_filters: dict[str, str] | None = None):
+        cache_key = tuple(sorted((payload_filters or {}).items()))
+        if cache_key in self._values_cache:
+            return self._values_cache[cache_key]
         statement = select(EntityRow).where(EntityRow.kind == self.kind)
         for field, value in (payload_filters or {}).items():
             statement = statement.where(EntityRow.payload[field].as_string() == value)
@@ -105,6 +111,7 @@ class EntityCollection:
             model for entity_id, model in self.models.items()
             if entity_id not in persisted_ids and entity_id not in self.deleted
         )
+        self._values_cache[cache_key] = values
         return values
 
     def __iter__(self):

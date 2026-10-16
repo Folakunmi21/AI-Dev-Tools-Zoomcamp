@@ -128,7 +128,9 @@ def accept_invite(token: str, value: AcceptInviteInput | None = None, user=Depen
     if not g: raise HTTPException(404, "That invite link could not be found.")
     existing = user_member(g.id, user.id)
     if existing: return existing
-    m = GroupMember(id=new_id("mbr"), groupId=g.id, userId=user.id, displayName=(value.displayName.strip() if value and value.displayName else user.name.split()[0]), role="member", joinedAt=utcnow()); store.data.members[m.id] = m; return m
+    m = GroupMember(id=new_id("mbr"), groupId=g.id, userId=user.id, displayName=(value.displayName.strip() if value and value.displayName else user.name.split()[0]), role="member", joinedAt=utcnow()); store.data.members[m.id] = m
+    add_activity(g, m, "member_joined", "member", m.id, f"{m.displayName} joined the group using an invite link")
+    return m
 
 
 @router.post("/groups/{group_id}/invitations", status_code=204)
